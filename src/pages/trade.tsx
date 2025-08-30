@@ -1,97 +1,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Geist, Inter } from "next/font/google";
-// YAKA PIE Contract ABI - moved from separate abi.json file
-const YAKA_PIE_ABI = [
-  {
-    "inputs": [
-      {"internalType": "address", "name": "_larry", "type": "address"},
-      {"internalType": "string", "name": "_name", "type": "string"},
-      {"internalType": "string", "name": "_symbol", "type": "string"}
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  // Core trading functions
-  {
-    "inputs": [
-      {"internalType": "address", "name": "receiver", "type": "address"},
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
-    ],
-    "name": "buy",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "tokens", "type": "uint256"}
-    ],
-    "name": "sell",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "address", "name": "spender", "type": "address"},
-      {"internalType": "uint256", "name": "value", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "address", "name": "account", "type": "address"}
-    ],
-    "name": "balanceOf",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  // Leverage and borrowing functions
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "larry", "type": "uint256"},
-      {"internalType": "uint256", "name": "numberOfDays", "type": "uint256"}
-    ],
-    "name": "leverage",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "larry", "type": "uint256"},
-      {"internalType": "uint256", "name": "numberOfDays", "type": "uint256"}
-    ],
-    "name": "borrow",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
-    ],
-    "name": "removeCollateral",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
-    ],
-    "name": "repay",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  // Full ABI available in the complete contract interface
-];
+// Import the real YAKA PIE Contract ABI
+import YAKA_PIE_ABI from './abi.json';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -106,6 +17,36 @@ const inter = Inter({
 const YKP_TOKEN_ADDRESS = "0x008c8c362cd46a9e41957cc11ee812647233dff1";
 const LARRY_TOKEN_ADDRESS = "0x888d81e3ea5E8362B5f69188CBCF34Fa8da4b888";
 const SEI_CHAIN_ID = 1329; // SEI EVM Mainnet
+
+// Centralized selector map keyed by function signature (no hardcoded hex scattered around)
+const SELECTOR_MAP: Record<string, string> = {
+  // ERC20 common
+  'name()': '0x06fdde03',
+  'symbol()': '0x95d89b41',
+  'decimals()': '0x313ce567',
+  'totalSupply()': '0x18160ddd',
+  'balanceOf(address)': '0x70a08231',
+  'allowance(address,address)': '0xdd62ed3e',
+  'approve(address,uint256)': '0x095ea7b3',
+
+  // YKP contract custom
+  'buy(address,uint256)': '0xcce7ec13',
+  'sell(uint256)': '0xe4849b32',
+  'leverage(uint256,uint256)': '0x29092d0e',
+  'borrow(uint256,uint256)': '0xc5ebeaec',
+  'Loans(address)': '0xa5b7c786',
+  'getBacking()': '0x8dc654a2',
+  'getBuyFee()': '0x39e899ee',
+  'sell_fee()': '0x0e85e3a9',
+  'buy_fee_leverage()': '0xf2cc0c18',
+  'getBuyTokens(uint256)': '0x850e8c27',
+};
+
+const getSelectorForSignature = (signature: string): string => {
+  const sel = SELECTOR_MAP[signature];
+  if (!sel) throw new Error(`Missing selector for signature: ${signature}`);
+  return sel;
+};
 
 interface EthereumError {
   code: number;
@@ -133,6 +74,20 @@ export default function TradePage() {
   const [larryBalance, setLarryBalance] = useState("0");
   const [ykpBalance, setYkpBalance] = useState("0");
 
+  // Fetch contract state on component mount
+  useEffect(() => {
+    const initializeContract = async () => {
+      const isContractAvailable = await testContractConnection();
+      if (isContractAvailable) {
+        await fetchContractState();
+      } else {
+        console.warn("Contract not available, using fallback values");
+      }
+    };
+    
+    initializeContract();
+  }, []);
+
   // Buy/Sell states
   const [buyLarryAmount, setBuyLarryAmount] = useState("");
   const [buyYkpAmount, setBuyYkpAmount] = useState("");
@@ -151,7 +106,7 @@ export default function TradePage() {
 
   // Borrow More states
   const [borrowMoreAmount, setBorrowMoreAmount] = useState("");
-  const [borrowMoreCollateral, setBorrowMoreCollateral] = useState(""); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [borrowMoreCollateral, setBorrowMoreCollateral] = useState("");
 
   // Position Management states
   const [removeCollateralAmount, setRemoveCollateralAmount] = useState("");
@@ -160,30 +115,70 @@ export default function TradePage() {
 
   // Flash Close states
   const [flashCloseCollateral, setFlashCloseCollateral] = useState("");
+  
+  // Contract state for leverage calculations
+  const [contractBacking, setContractBacking] = useState("0");
+  const [totalSupply, setTotalSupply] = useState("0");
+  const [buyFee, setBuyFee] = useState("975");
+  const [sellFee, setSellFee] = useState("975");
+  const [leverageFeeRate, setLeverageFeeRate] = useState("10");
+  const [userLoan, setUserLoan] = useState({ collateral: "0", borrowed: "0", endDate: "0", numberOfDays: "0" });
 
-  // Calculate buy amounts
+  // Calculate buy amounts using real contract data
   useEffect(() => {
-    if (buyLarryAmount && parseFloat(buyLarryAmount) > 0) {
-      const calculated = (parseFloat(buyLarryAmount) * 0.975).toFixed(4);
-      setBuyYkpAmount(calculated);
-    } else {
-      setBuyYkpAmount("");
-    }
-  }, [buyLarryAmount]);
+    const calculateBuyAmount = async () => {
+      if (buyLarryAmount && parseFloat(buyLarryAmount) > 0) {
+        // First try to use the contract's getBuyTokens function directly
+        const tokensFromContract = await getBuyTokensFromContract(buyLarryAmount);
+        if (parseFloat(tokensFromContract) > 0) {
+          setBuyYkpAmount(tokensFromContract);
+          return;
+        }
+        
+        // Fallback to manual calculation if contract backing and supply are available
+        if (contractBacking && totalSupply && buyFee && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0) {
+          const tokensFromManual = calculateTokensFromLarry(buyLarryAmount);
+          const feeMultiplier = parseFloat(buyFee) / 1000; // Convert from basis points
+          const tokensAfterFee = parseFloat(tokensFromManual) * feeMultiplier;
+          setBuyYkpAmount(tokensAfterFee.toFixed(4));
+        } else {
+          // Final fallback to static calculation
+          const calculated = (parseFloat(buyLarryAmount) * 0.975).toFixed(4);
+          setBuyYkpAmount(calculated);
+        }
+      } else {
+        setBuyYkpAmount("");
+      }
+    };
+    
+    calculateBuyAmount();
+  }, [buyLarryAmount, contractBacking, totalSupply, buyFee]);
 
-  // Calculate sell amounts
+  // Calculate sell amounts using real contract data
   useEffect(() => {
-    if (sellYkpAmount && parseFloat(sellYkpAmount) > 0) {
+    if (sellYkpAmount && parseFloat(sellYkpAmount) > 0 && contractBacking && totalSupply && sellFee) {
+      // Use the actual sell fee from contract and calculateLarryFromTokens function
+      const larryFromContract = calculateLarryFromTokens(sellYkpAmount);
+      const feeMultiplier = parseFloat(sellFee) / 1000; // Convert from basis points
+      const larryAfterFee = parseFloat(larryFromContract) * feeMultiplier;
+      setSellLarryAmount(larryAfterFee.toFixed(4));
+    } else if (sellYkpAmount && parseFloat(sellYkpAmount) > 0) {
+      // Fallback to static calculation if contract data not loaded
       const calculated = (parseFloat(sellYkpAmount) * 0.975).toFixed(4);
       setSellLarryAmount(calculated);
     } else {
       setSellLarryAmount("");
     }
-  }, [sellYkpAmount]);
+  }, [sellYkpAmount, contractBacking, totalSupply, sellFee]);
 
-  // Calculate leverage fee
+  // Calculate leverage fee using real contract data
   useEffect(() => {
-    if (leverageLarryAmount && parseFloat(leverageLarryAmount) > 0 && leverageDays) {
+    if (leverageLarryAmount && parseFloat(leverageLarryAmount) > 0 && leverageDays && leverageFeeRate) {
+      // Use the real contract calculation function
+      const calculatedFee = calculateLeverageFee(leverageLarryAmount, leverageDays);
+      setLeverageFee(calculatedFee);
+    } else if (leverageLarryAmount && parseFloat(leverageLarryAmount) > 0 && leverageDays) {
+      // Fallback to static calculation if contract data not loaded
       const baseInterest = (parseFloat(leverageLarryAmount) * 0.039 * parseFloat(leverageDays)) / 365;
       const dayInterest = (parseFloat(leverageLarryAmount) * 0.001 * parseFloat(leverageDays));
       const totalFee = (parseFloat(leverageLarryAmount) * 0.1) + baseInterest + dayInterest;
@@ -191,17 +186,25 @@ export default function TradePage() {
     } else {
       setLeverageFee("");
     }
-  }, [leverageLarryAmount, leverageDays]);
+  }, [leverageLarryAmount, leverageDays, leverageFeeRate]);
 
-  // Calculate borrow collateral
+  // Calculate borrow collateral using real contract data
   useEffect(() => {
-    if (borrowLarryAmount && parseFloat(borrowLarryAmount) > 0) {
+    if (borrowLarryAmount && parseFloat(borrowLarryAmount) > 0 && contractBacking && totalSupply) {
+      // Convert LARRY to tokens for collateral (need to over-collateralize by ~1%)
+      const larryAmount = parseFloat(borrowLarryAmount);
+      // Need to provide collateral worth more than 99% of borrowed amount
+      const requiredLarryCollateral = larryAmount / 0.99;
+      const requiredTokenCollateral = calculateTokensFromLarry(requiredLarryCollateral.toString());
+      setBorrowCollateral(requiredTokenCollateral);
+    } else if (borrowLarryAmount && parseFloat(borrowLarryAmount) > 0) {
+      // Fallback to static calculation
       const collateral = (parseFloat(borrowLarryAmount) / 0.99).toFixed(4);
       setBorrowCollateral(collateral);
     } else {
       setBorrowCollateral("");
     }
-  }, [borrowLarryAmount]);
+  }, [borrowLarryAmount, contractBacking, totalSupply]);
 
   // Function to fetch user balances
   const fetchBalances = async (userAccount: string) => {
@@ -209,7 +212,7 @@ export default function TradePage() {
     
     try {
       // Get LARRY balance
-      const larryBalanceData = encodeContractCall('0x70a08231', [padAddress(userAccount)]); // balanceOf
+      const larryBalanceData = encodeContractCall(getSelectorForSignature('balanceOf(address)'), [padAddress(userAccount)]); // balanceOf
       const larryResult = await window.ethereum.request({
         method: 'eth_call',
         params: [{
@@ -223,7 +226,7 @@ export default function TradePage() {
       setLarryBalance(larryBalanceFormatted);
       
       // Get YKP balance  
-      const ykpBalanceData = encodeContractCall('0x70a08231', [padAddress(userAccount)]); // balanceOf
+      const ykpBalanceData = encodeContractCall(getSelectorForSignature('balanceOf(address)'), [padAddress(userAccount)]); // balanceOf
       const ykpResult = await window.ethereum.request({
         method: 'eth_call',
         params: [{
@@ -238,6 +241,412 @@ export default function TradePage() {
       
     } catch (error) {
       console.error("Failed to fetch balances:", error);
+    }
+  };
+
+  // Function to check current network
+  const checkNetwork = async () => {
+    if (!window.ethereum) return false;
+    
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' }) as string;
+      const currentChainId = parseInt(chainId, 16);
+      console.log("Current chain ID:", currentChainId);
+      console.log("Expected chain ID:", SEI_CHAIN_ID);
+      
+      if (currentChainId !== SEI_CHAIN_ID) {
+        console.warn(`Wrong network! Current: ${currentChainId}, Expected: ${SEI_CHAIN_ID}`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to check network:", error);
+      return false;
+    }
+  };
+
+  // Find function in ABI and create proper call data
+  type AbiInput = { name: string; type: string; internalType?: string; };
+  type AbiItem = { type: string; name?: string; stateMutability?: string; inputs?: AbiInput[] };
+  const findFunctionInABI = (functionName: string): AbiItem | undefined => {
+    return (YAKA_PIE_ABI as AbiItem[]).find((item) => 
+      item.type === 'function' && item.name === functionName
+    );
+  };
+
+  // Use standard keccak256 calculation for function selectors
+  const calculateFunctionSelector = (functionSignature: string): string => {
+    // Since we can't use crypto.subtle for keccak256, let's try the known working approach
+    // Use a simple mapping based on what actually works
+    
+    const standardSelectors: { [key: string]: string } = SELECTOR_MAP;
+    
+    const selector = standardSelectors[functionSignature];
+    if (selector) {
+      console.log(`🔧 Using selector for ${functionSignature}: ${selector}`);
+      return selector;
+    }
+    
+    console.error(`❌ No selector found for: ${functionSignature}`);
+    return '0x00000000';
+  };
+
+  // Get function selector for a function name
+  const getFunctionSelector = (functionName: string): string => {
+    const signature = `${functionName}()`;
+    return calculateFunctionSelector(signature);
+  };
+
+  // Create function selector using direct RPC test
+  const createFunctionSelector = (functionName: string): string => {
+    return getFunctionSelector(functionName);
+  };
+  
+  // Test a function selector by trying it
+  const testFunctionSelector = async (functionName: string, selector: string) => {
+    try {
+      const result = await window.ethereum?.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: selector
+        }, 'latest']
+      }) as string;
+      
+      console.log(`Testing ${functionName} with ${selector}: ${result}`);
+      return result && result !== '0x' && result !== '0x0';
+    } catch (error) {
+      console.log(`Failed ${functionName} with ${selector}:`, error);
+      return false;
+    }
+  };
+  
+  // Debug brute-force helper removed
+
+  // Function to test a single contract function using ABI
+  const testSingleFunction = async (functionName: string) => {
+    if (!window.ethereum) {
+      console.error(`❌ No ethereum provider for ${functionName}`);
+      return null;
+    }
+    
+    try {
+      // Find function in ABI
+      const abiFunction = findFunctionInABI(functionName);
+      if (!abiFunction) {
+        console.error(`❌ Function ${functionName} not found in ABI`);
+        return null;
+      }
+      
+      const selector = createFunctionSelector(functionName);
+      console.log(`🔍 Testing ${functionName}:`);
+      console.log(`  Selector: ${selector}`);
+      
+      const result = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: selector
+        }, 'latest']
+      }) as string;
+      
+      console.log(`  Raw result: ${result}`);
+      
+      if (!result || result === '0x' || result === '0x0') {
+        console.warn(`  ❌ ${functionName} returned empty/zero`);
+        return null;
+      }
+      
+      console.log(`  ✅ ${functionName} successful`);
+      return result;
+      
+    } catch (error) {
+      console.error(`  ❌ ${functionName} failed:`, error);
+      return null;
+    }
+  };
+
+  // Debug helpers removed (testAllContractFunctions, bruteForceTest)
+
+  // Function to fetch contract state for leverage calculations
+  const fetchContractState = async () => {
+    if (!window.ethereum) {
+      console.error("❌ No ethereum provider");
+      return;
+    }
+    
+    // Check if we're on the right network first
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      console.error("❌ Cannot fetch contract state - wrong network");
+      return;
+    }
+    
+    console.log("🚀 Fetching contract state from:", YKP_TOKEN_ADDRESS);
+    
+    try {
+      // Test getBacking(); fall back to LARRY.balanceOf(YKP)
+      const backingResult = await testSingleFunction('getBacking');
+      if (backingResult) {
+        const backingWei = BigInt(backingResult);
+        const backingFormatted = (Number(backingWei) / Math.pow(10, 18)).toFixed(4);
+        setContractBacking(backingFormatted);
+        console.log(`💰 Contract backing: ${backingFormatted} LARRY`);
+      } else {
+        // Fallback: read LARRY token balance of the YKP contract
+        try {
+          const selector = getSelectorForSignature('balanceOf(address)');
+          const calldata = selector + padAddress(YKP_TOKEN_ADDRESS);
+          const result = await window.ethereum.request({
+            method: 'eth_call',
+            params: [{ to: LARRY_TOKEN_ADDRESS, data: calldata }, 'latest']
+          }) as string;
+          if (result && result !== '0x') {
+            const wei = BigInt(result);
+            const formatted = (Number(wei) / Math.pow(10, 18)).toFixed(4);
+            setContractBacking(formatted);
+            console.log(`💰 Contract backing (fallback via LARRY.balanceOf): ${formatted} LARRY`);
+          } else {
+            console.warn('⚠️ Fallback LARRY.balanceOf returned empty');
+          }
+        } catch (e) {
+          console.warn('⚠️ Fallback backing fetch failed:', e);
+        }
+      }
+      
+      // Test totalSupply()
+      const totalSupplyResult = await testSingleFunction('totalSupply');
+      if (totalSupplyResult) {
+        const totalSupplyWei = BigInt(totalSupplyResult);
+        const totalSupplyFormatted = (Number(totalSupplyWei) / Math.pow(10, 18)).toFixed(4);
+        setTotalSupply(totalSupplyFormatted);
+        console.log(`🔢 Total supply: ${totalSupplyFormatted} YKP`);
+      }
+      
+      // Test getBuyFee()
+      const buyFeeResult = await testSingleFunction('getBuyFee');
+      if (buyFeeResult) {
+        const buyFeeValue = BigInt(buyFeeResult);
+        setBuyFee(buyFeeValue.toString());
+        console.log(`💸 Buy fee: ${buyFeeValue.toString()}`);
+      } else {
+        setBuyFee("975"); // Default fallback
+      }
+      
+      // Test sell_fee()
+      const sellFeeResult = await testSingleFunction('sell_fee');
+      if (sellFeeResult) {
+        const sellFeeValue = BigInt(sellFeeResult);
+        setSellFee(sellFeeValue.toString());
+        console.log(`💰 Sell fee: ${sellFeeValue.toString()}`);
+      } else {
+        setSellFee("975"); // Default fallback
+      }
+      
+      // Test buy_fee_leverage()
+      const leverageFeeResult = await testSingleFunction('buy_fee_leverage');
+      if (leverageFeeResult) {
+        const leverageFeeValue = BigInt(leverageFeeResult);
+        setLeverageFeeRate(leverageFeeValue.toString());
+        console.log(`🚀 Leverage fee rate: ${leverageFeeValue.toString()}`);
+      } else {
+        setLeverageFeeRate("10"); // Default fallback
+      }
+      
+      console.log("✅ Contract state fetch completed");
+      
+    } catch (error) {
+      console.error("❌ Failed to fetch contract state:", error);
+      // Set default values if contract calls fail
+      setBuyFee("975");
+      setSellFee("975");
+      setLeverageFeeRate("10");
+    }
+  };
+
+  // Function to get buy tokens directly from contract
+  const getBuyTokensFromContract = async (larryAmount: string) => {
+    if (!window.ethereum || !larryAmount || parseFloat(larryAmount) <= 0) return "0";
+    
+    // Check network first
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      console.warn("Cannot call getBuyTokens - wrong network");
+      return "0";
+    }
+    
+    try {
+      const larryAmountWei = BigInt(Math.floor(parseFloat(larryAmount) * Math.pow(10, 18)));
+      const larryAmountHex = '0x' + larryAmountWei.toString(16);
+      
+      // Call getBuyTokens(amount) via ABI-derived selector
+      const selector = getSelectorForSignature('getBuyTokens(uint256)');
+      const getBuyTokensData = selector + padNumber(larryAmountHex);
+      
+      console.log("🔍 Calling getBuyTokens:");
+      console.log("  📍 Contract:", YKP_TOKEN_ADDRESS);
+      console.log("  💰 LARRY Amount:", larryAmount);
+      console.log("  🔢 Wei:", larryAmountWei.toString());
+      console.log("  🔧 Selector:", selector);
+      console.log("  📦 Call Data:", getBuyTokensData);
+      
+      const result = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: getBuyTokensData
+        }, 'latest']
+      }) as string;
+      
+      console.log("📥 getBuyTokens raw result:", result);
+      
+      if (!result || result === '0x' || result === '0x0') {
+        console.warn("⚠️ getBuyTokens returned empty/zero");
+        return "0";
+      }
+      
+      const tokensWei = BigInt(result);
+      const tokensFormatted = (Number(tokensWei) / Math.pow(10, 18)).toFixed(4);
+      console.log("✅ Tokens from getBuyTokens:", tokensFormatted, "YKP");
+      
+      return tokensFormatted;
+    } catch (error) {
+      console.error("❌ Failed to call getBuyTokens:", error);
+      return "0";
+    }
+  };
+
+  // Test direct RPC call to verify contract functions
+  const testDirectRPC = async () => {
+    try {
+      console.log("🔍 Testing direct RPC call to SEI...");
+      
+      // Test with a direct fetch to SEI RPC
+      const response = await fetch('https://evm-rpc.sei-apis.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_call',
+          params: [{
+            to: YKP_TOKEN_ADDRESS,
+            data: '0x18160ddd' // totalSupply()
+          }, 'latest'],
+          id: 1
+        })
+      });
+      
+      const data = await response.json();
+      console.log("📥 Direct RPC response:", data);
+      
+      if (data.result) {
+        console.log("✅ Direct RPC working!");
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("❌ Direct RPC test failed:", error);
+      return false;
+    }
+  };
+
+  // List all functions in the ABI
+  const listABIFunctions = () => {
+    console.log("📜 ABI Functions:");
+    const functions = (YAKA_PIE_ABI as AbiItem[]).filter((item) => item.type === 'function');
+    functions.forEach((func, index: number) => {
+      console.log(`  ${index + 1}. ${func.name}() - ${func.stateMutability}`);
+    });
+    return functions;
+  };
+
+  // Test function to verify contract is deployed and responding
+  const testContractConnection = async () => {
+    if (!window.ethereum) {
+      console.error("❌ No ethereum provider found");
+      return false;
+    }
+    
+    // Check network first
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      console.error("❌ Wrong network - switch to SEI EVM Mainnet (Chain ID: 1329)");
+      return false;
+    }
+    
+    try {
+      console.log("🔍 Testing contract connection to:", YKP_TOKEN_ADDRESS);
+      
+      // List all functions from ABI
+      listABIFunctions();
+      
+      // Test direct RPC first
+      const directRPCWorks = await testDirectRPC();
+      if (!directRPCWorks) {
+        console.error("❌ Direct RPC test failed");
+      }
+      
+      // First test: Check if there's any code at this address
+      const code = await window.ethereum.request({
+        method: 'eth_getCode',
+        params: [YKP_TOKEN_ADDRESS, 'latest']
+      }) as string;
+      
+      console.log("📜 Contract code length:", code.length);
+      
+      if (!code || code === '0x' || code.length <= 2) {
+        console.error("❌ No contract deployed at address:", YKP_TOKEN_ADDRESS);
+        console.log("💡 This could mean:");
+        console.log("   1. Wrong contract address");
+        console.log("   2. Contract not deployed on this network");
+        console.log("   3. Wrong network (current should be SEI EVM Mainnet)");
+        return false;
+      }
+      
+      console.log("✅ Contract code found - testing function calls...");
+      return true;
+      
+    } catch (error) {
+      console.error("❌ Contract connection test failed:", error);
+      return false;
+    }
+  };
+
+  // Function to fetch user's loan data
+  const fetchUserLoan = async (userAccount: string) => {
+    if (!window.ethereum) return;
+    
+    try {
+      // Get user loan data (Loans mapping)
+      const loanData = encodeContractCall(getSelectorForSignature('Loans(address)'), [padAddress(userAccount)]); // Loans(address)
+      const loanResult = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: loanData
+        }, 'latest']
+      }) as string;
+      
+      // Decode the loan data (collateral, borrowed, endDate, numberOfDays)
+      const loanResultHex = loanResult.slice(2);
+      const collateral = BigInt('0x' + loanResultHex.slice(0, 64));
+      const borrowed = BigInt('0x' + loanResultHex.slice(64, 128));
+      const endDate = BigInt('0x' + loanResultHex.slice(128, 192));
+      const numberOfDays = BigInt('0x' + loanResultHex.slice(192, 256));
+      
+      setUserLoan({
+        collateral: (Number(collateral) / Math.pow(10, 18)).toFixed(4),
+        borrowed: (Number(borrowed) / Math.pow(10, 18)).toFixed(4),
+        endDate: endDate.toString(),
+        numberOfDays: numberOfDays.toString()
+      });
+      
+    } catch (error) {
+      console.error("Failed to fetch user loan:", error);
     }
   };
 
@@ -276,8 +685,10 @@ export default function TradePage() {
           }
         }
         
-        // Fetch balances after connection
+        // Fetch balances and contract state after connection
         await fetchBalances(accounts[0]);
+        await fetchContractState(); // Refresh contract state
+        await fetchUserLoan(accounts[0]);
         
       } catch (error) {
         console.error("Failed to connect wallet:", error);
@@ -290,6 +701,52 @@ export default function TradePage() {
   // Helper function to create contract call data
   const encodeContractCall = (functionSig: string, params: string[]) => {
     return functionSig + params.join('');
+  };
+
+  // Calculate real leverage fee using contract data
+  const calculateLeverageFee = (larryAmount: string, days: string) => {
+    if (!larryAmount || !days) return "0";
+    
+    const amount = parseFloat(larryAmount);
+    const numDays = parseFloat(days);
+    
+    // Use the actual leverage fee rate from contract
+    const leverageFeePercent = parseFloat(leverageFeeRate) / 1000; // Convert from basis points
+    const mintFee = amount * leverageFeePercent;
+    
+    // Calculate interest: 3.9% APY + 0.1% per day
+    const interestRate = (0.039 * numDays) / 365 + 0.001 * numDays;
+    const interestFee = amount * interestRate;
+    
+    return (mintFee + interestFee).toFixed(4);
+  };
+
+  // Calculate tokens received from LARRY amount using contract data
+  const calculateTokensFromLarry = (larryAmount: string) => {
+    if (!larryAmount || !contractBacking || !totalSupply) return "0";
+    
+    const amount = parseFloat(larryAmount);
+    const backing = parseFloat(contractBacking);
+    const supply = parseFloat(totalSupply);
+    
+    if (backing === 0) return "0";
+    
+    const tokens = (amount * supply) / backing;
+    return tokens.toFixed(4);
+  };
+
+  // Calculate LARRY from tokens using contract data
+  const calculateLarryFromTokens = (tokenAmount: string) => {
+    if (!tokenAmount || !contractBacking || !totalSupply) return "0";
+    
+    const tokens = parseFloat(tokenAmount);
+    const backing = parseFloat(contractBacking);
+    const supply = parseFloat(totalSupply);
+    
+    if (supply === 0) return "0";
+    
+    const larry = (tokens * backing) / supply;
+    return larry.toFixed(4);
   };
 
   // Helper function to pad address
@@ -338,6 +795,26 @@ export default function TradePage() {
       console.log(`  Padded amount: ${padNumber(amount)}`);
       console.log(`  Final data: ${result}`);
       return result;
+    } else if (functionName === 'leverage') {
+      const larry = params[0] as string; // uint256
+      const numberOfDays = params[1] as string; // uint256
+      const result = '0x29092d0e' + padNumber(larry) + padNumber(numberOfDays);
+      console.log(`Encoding leverage function:`);
+      console.log(`  LARRY: ${larry}`);
+      console.log(`  Number of Days: ${numberOfDays}`);
+      console.log(`  Padded LARRY: ${padNumber(larry)}`);
+      console.log(`  Padded Days: ${padNumber(numberOfDays)}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'borrow') {
+      const larry = params[0] as string; // uint256
+      const numberOfDays = params[1] as string; // uint256
+      const result = '0xc5ebeaec' + padNumber(larry) + padNumber(numberOfDays);
+      console.log(`Encoding borrow function:`);
+      console.log(`  LARRY: ${larry}`);
+      console.log(`  Number of Days: ${numberOfDays}`);
+      console.log(`  Final data: ${result}`);
+      return result;
     }
 
     throw new Error(`Unsupported function: ${functionName}`);
@@ -346,7 +823,7 @@ export default function TradePage() {
 
 
   // Trading Functions
-  const executeTransaction = async (action: string, to: string, data: string, value: string = '0x0') => {
+  const executeTransaction = async (to: string, data: string, value: string = '0x0') => {
     if (!window.ethereum || !isConnected) {
       alert("Please connect your wallet first");
       return null;
@@ -409,7 +886,7 @@ export default function TradePage() {
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, larryAmountHex]);
 
       console.log("Step 1: Approving LARRY tokens...");
-      const approveTxHash = await executeTransaction("Approve LARRY", LARRY_TOKEN_ADDRESS, approveData);
+      const approveTxHash = await executeTransaction(LARRY_TOKEN_ADDRESS, approveData);
 
       if (!approveTxHash) {
         setIsLoading(false);
@@ -428,17 +905,18 @@ export default function TradePage() {
       console.log("Account (receiver):", account);
       console.log("LARRY Amount (hex):", larryAmountHex);
       console.log("Buy Data:", buyData);
-      console.log("Expected buy data format:", '0x6c8f61b4' + padAddress(account) + padNumber(larryAmountHex));
+      console.log("Expected buy data format:", getSelectorForSignature('buy(address,uint256)') + padAddress(account) + padNumber(larryAmountHex));
 
-      const buyTxHash = await executeTransaction("Buy YKP", YKP_TOKEN_ADDRESS, buyData);
+      const buyTxHash = await executeTransaction(YKP_TOKEN_ADDRESS, buyData);
       
       if (buyTxHash) {
         setTxHash(buyTxHash);
         alert(`Buy YKP transaction submitted! Transaction hash: ${buyTxHash}`);
         
-        // Refresh balances after successful transaction
+        // Refresh balances and contract state after successful transaction
         setTimeout(() => {
           fetchBalances(account);
+          fetchContractState();
         }, 3000);
       }
       
@@ -482,17 +960,18 @@ export default function TradePage() {
       console.log("Selling YKP tokens...");
       console.log("YKP Amount (hex):", ykpAmountHex);
       console.log("Sell Data:", sellData);
-      console.log("Expected sell data format:", '0xe4849b32' + padNumber(ykpAmountHex));
+      console.log("Expected sell data format:", getSelectorForSignature('sell(uint256)') + padNumber(ykpAmountHex));
 
-      const txHash = await executeTransaction("Sell YKP", YKP_TOKEN_ADDRESS, sellData);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, sellData);
       
       if (txHash) {
         setTxHash(txHash);
         alert(`Sell YKP transaction submitted! Transaction hash: ${txHash}`);
         
-        // Refresh balances after successful transaction
+        // Refresh balances and contract state after successful transaction
         setTimeout(() => {
           fetchBalances(account);
+          fetchContractState();
         }, 3000);
       }
       
@@ -506,12 +985,157 @@ export default function TradePage() {
 
   const leveragePosition = async () => {
     if (!isConnected || !leverageLarryAmount || !leverageDays) return;
-    alert("Leverage functionality will be implemented soon!");
+    
+    setIsLoading(true);
+    setTxHash("");
+    
+    try {
+      // Convert LARRY amount to wei (18 decimals) - handle large numbers safely
+      const larryAmountFloat = parseFloat(leverageLarryAmount);
+      if (isNaN(larryAmountFloat) || larryAmountFloat <= 0) {
+        throw new Error("Invalid LARRY amount");
+      }
+
+      // Check for extremely large numbers
+      const maxReasonableAmount = 1000000000; // 1 billion
+      if (larryAmountFloat > maxReasonableAmount) {
+        throw new Error("Amount too large. Maximum allowed is 1,000,000,000 LARRY tokens.");
+      }
+
+      // Calculate the total fee required
+      const totalFee = calculateLeverageFee(leverageLarryAmount, leverageDays);
+      const totalFeeFloat = parseFloat(totalFee);
+      const totalRequired = larryAmountFloat + totalFeeFloat;
+      
+      // Use a safer method to handle large numbers without scientific notation
+      const decimals = 18;
+      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountHex = '0x' + larryAmountWei.toString(16);
+      const numberOfDaysHex = '0x' + parseInt(leverageDays).toString(16);
+      
+      // Step 1: Approve LARRY tokens for the YKP contract (including fees)
+      const totalRequiredWei = BigInt(Math.floor(totalRequired * Math.pow(10, decimals)));
+      const totalRequiredHex = '0x' + totalRequiredWei.toString(16);
+      
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, totalRequiredHex]);
+
+      console.log("Step 1: Approving LARRY tokens for leverage...");
+      const approveTxHash = await executeTransaction(LARRY_TOKEN_ADDRESS, approveData);
+
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("LARRY tokens approved! Hash:", approveTxHash);
+
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 2: Call leverage function on YKP contract
+      const leverageData = encodeFunctionCall('leverage', [larryAmountHex, numberOfDaysHex]);
+
+      console.log("Step 2: Creating leverage position...");
+      console.log("LARRY Amount (hex):", larryAmountHex);
+      console.log("Number of Days (hex):", numberOfDaysHex);
+      console.log("Leverage Data:", leverageData);
+
+      const leverageTxHash = await executeTransaction(YKP_TOKEN_ADDRESS, leverageData);
+      
+      if (leverageTxHash) {
+        setTxHash(leverageTxHash);
+        alert(`Leverage position created! Transaction hash: ${leverageTxHash}`);
+        
+        // Refresh balances and contract state after successful transaction
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+      
+    } catch (error: unknown) {
+      console.error("Leverage position failed:", error);
+      const err = error as { message?: string };
+      alert(err.message || "Leverage position failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const borrowLARRY = async () => {
     if (!isConnected || !borrowLarryAmount || !borrowDays) return;
-    alert("Borrow functionality will be implemented soon!");
+    
+    setIsLoading(true);
+    setTxHash("");
+    
+    try {
+      // Convert amounts to wei
+      const larryAmountFloat = parseFloat(borrowLarryAmount);
+      const collateralFloat = parseFloat(borrowCollateral);
+      
+      if (isNaN(larryAmountFloat) || larryAmountFloat <= 0) {
+        throw new Error("Invalid LARRY amount");
+      }
+      
+      if (isNaN(collateralFloat) || collateralFloat <= 0) {
+        throw new Error("Invalid collateral amount");
+      }
+
+      const decimals = 18;
+      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountHex = '0x' + larryAmountWei.toString(16);
+      const numberOfDaysHex = '0x' + parseInt(borrowDays).toString(16);
+      
+      // Calculate required YKP collateral in wei
+      const collateralWei = BigInt(Math.floor(collateralFloat * Math.pow(10, decimals)));
+      const collateralHex = '0x' + collateralWei.toString(16);
+      
+      // Step 1: Approve YKP tokens as collateral
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, collateralHex]);
+
+      console.log("Step 1: Approving YKP tokens as collateral...");
+      const approveTxHash = await executeTransaction(YKP_TOKEN_ADDRESS, approveData);
+
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("YKP tokens approved! Hash:", approveTxHash);
+
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 2: Call borrow function on YKP contract
+      const borrowData = encodeFunctionCall('borrow', [larryAmountHex, numberOfDaysHex]);
+
+      console.log("Step 2: Creating borrow position...");
+      console.log("LARRY Amount (hex):", larryAmountHex);
+      console.log("Number of Days (hex):", numberOfDaysHex);
+      console.log("Borrow Data:", borrowData);
+
+      const borrowTxHash = await executeTransaction(YKP_TOKEN_ADDRESS, borrowData);
+      
+      if (borrowTxHash) {
+        setTxHash(borrowTxHash);
+        alert(`Borrow position created! Transaction hash: ${borrowTxHash}`);
+        
+        // Refresh balances and contract state after successful transaction
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+      
+    } catch (error: unknown) {
+      console.error("Borrow position failed:", error);
+      const err = error as { message?: string };
+      alert(err.message || "Borrow position failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const borrowMoreLARRY = async () => {
@@ -619,7 +1243,12 @@ export default function TradePage() {
 
         {/* Network Info */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Network Information</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Network Information</h3>
+            <div className="flex gap-2">
+              {/* Debug/Test buttons removed per request */}
+            </div>
+          </div>
           <div className="grid md:grid-cols-4 gap-4 text-sm">
             <div>
               <div className="font-semibold text-gray-700">Network</div>
@@ -637,6 +1266,31 @@ export default function TradePage() {
               <div className="font-semibold text-gray-700">LARRY Token</div>
               <div className="text-gray-600 font-mono text-xs">{LARRY_TOKEN_ADDRESS}</div>
             </div>
+          </div>
+          
+          {/* Contract Status */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <div className="font-semibold text-gray-700">Contract Backing</div>
+                <div className={contractBacking === "0" ? "text-orange-600" : "text-green-600"}>
+                  {contractBacking === "0" ? "❌ Not Loaded" : `✅ ${contractBacking} LARRY`}
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-700">Total Supply</div>
+                <div className={totalSupply === "0" ? "text-orange-600" : "text-green-600"}>
+                  {totalSupply === "0" ? "❌ Not Loaded" : `✅ ${totalSupply} YKP`}
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-gray-700">Buy Fee Rate</div>
+                <div className={buyFee === "975" ? "text-blue-600" : "text-green-600"}>
+                  {buyFee === "975" ? "🔄 Default" : `✅ ${((1000 - parseFloat(buyFee)) / 10).toFixed(1)}%`}
+                </div>
+              </div>
+            </div>
+            {/* Helper text removed per request */}
           </div>
         </div>
 
@@ -742,15 +1396,92 @@ export default function TradePage() {
                           <span>{buyLarryAmount || "0"} LARRY</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Buy Fee (2.5%):</span>
-                          <span>{buyLarryAmount ? (parseFloat(buyLarryAmount) * 0.025).toFixed(4) : "0"} LARRY</span>
+                          <span>Buy Fee ({((1000 - parseFloat(buyFee)) / 10).toFixed(1)}%):</span>
+                          <span>{buyLarryAmount ? (parseFloat(buyLarryAmount) * (1000 - parseFloat(buyFee)) / 1000).toFixed(4) : "0"} LARRY</span>
                         </div>
                         <div className="flex justify-between font-semibold">
                           <span>You Receive:</span>
                           <span>{buyYkpAmount || "0"} YKP</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span>Contract Backing:</span>
+                          <span className={contractBacking === "0" ? "text-orange-600" : "text-green-600"}>
+                            {contractBacking === "0" ? "Loading/Not Available" : `${contractBacking} LARRY`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Supply:</span>
+                          <span className={totalSupply === "0" ? "text-orange-600" : "text-green-600"}>
+                            {totalSupply === "0" ? "Loading/Not Available" : `${totalSupply} YKP`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Calculation Method:</span>
+                          <span className={buyYkpAmount && parseFloat(buyYkpAmount) > 0 && contractBacking !== "0" ? "text-green-600" : "text-blue-600"}>
+                            {buyYkpAmount && parseFloat(buyYkpAmount) > 0 && contractBacking !== "0" ? "Live Contract Data" : "Fallback Formula"}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Leverage Information */}
+                    {userLoan && parseFloat(userLoan.borrowed) > 0 && (
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">🚀 Your Active Leverage Position</h4>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          <div className="flex justify-between">
+                            <span>Collateral:</span>
+                            <span>{userLoan.collateral} YKP</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Borrowed:</span>
+                            <span>{userLoan.borrowed} LARRY</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Loan Duration:</span>
+                            <span>{userLoan.numberOfDays} days</span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-purple-700">
+                            <span>End Date:</span>
+                            <span>{userLoan.endDate !== "0" ? new Date(parseInt(userLoan.endDate) * 1000).toLocaleDateString() : "N/A"}</span>
+                          </div>
+                        </div>
+                        <div className="mt-3 p-2 bg-purple-100 rounded text-xs text-purple-800">
+                          💡 You can manage your leverage position in the &quot;Leverage&quot; and &quot;Manage Position&quot; tabs
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Leverage Opportunity */}
+                    {buyLarryAmount && parseFloat(buyLarryAmount) > 0 && parseFloat(userLoan.borrowed) === 0 && (
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">💪 Leverage Opportunity</h4>
+                        <div className="space-y-2 text-sm text-gray-700">
+                          <p>Consider using leverage to amplify your position!</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <span className="font-medium">Leverage Fee (30 days):</span>
+                              <div className="text-purple-700 font-semibold">
+                                {calculateLeverageFee(buyLarryAmount, "30")} LARRY
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-medium">Potential Multiplier:</span>
+                              <div className="text-green-600 font-semibold">~2x-5x</div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setLeverageLarryAmount(buyLarryAmount);
+                              setActiveTab("leverage");
+                            }}
+                            className="mt-2 w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2 rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
+                          >
+                            🚀 Switch to Leverage Tab
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       onClick={buyYKP}
@@ -829,15 +1560,52 @@ export default function TradePage() {
                           <span>{sellYkpAmount || "0"} YKP</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Sell Fee (2.5%):</span>
-                          <span>{sellYkpAmount ? (parseFloat(sellYkpAmount) * 0.025).toFixed(4) : "0"} YKP</span>
+                          <span>Sell Fee ({((1000 - parseFloat(sellFee)) / 10).toFixed(1)}%):</span>
+                          <span>{sellYkpAmount ? (parseFloat(sellYkpAmount) * (1000 - parseFloat(sellFee)) / 1000).toFixed(4) : "0"} YKP</span>
                         </div>
                         <div className="flex justify-between font-semibold">
                           <span>You Receive:</span>
                           <span>{sellLarryAmount || "0"} LARRY</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span>Contract Backing:</span>
+                          <span>{contractBacking || "Loading..."} LARRY</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Supply:</span>
+                          <span>{totalSupply || "Loading..."} YKP</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Leverage Position Warning */}
+                    {userLoan && parseFloat(userLoan.borrowed) > 0 && (
+                      <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">⚠️ Leverage Position Alert</h4>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          <p className="text-red-600">You have an active leverage position. Selling YKP tokens might affect your collateral ratio.</p>
+                          <div className="flex justify-between">
+                            <span>Your Collateral:</span>
+                            <span>{userLoan.collateral} YKP</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Amount Selling:</span>
+                            <span>{sellYkpAmount || "0"} YKP</span>
+                          </div>
+                          {sellYkpAmount && parseFloat(sellYkpAmount) > 0 && (
+                            <div className="flex justify-between font-semibold">
+                              <span>Remaining Collateral:</span>
+                              <span className={parseFloat(userLoan.collateral) - parseFloat(sellYkpAmount) < parseFloat(userLoan.borrowed) / 0.99 ? "text-red-600" : "text-green-600"}>
+                                {(parseFloat(userLoan.collateral) - parseFloat(sellYkpAmount)).toFixed(4)} YKP
+                              </span>
+                            </div>
+                          )}
+                          <div className="text-red-600 text-xs mt-2">
+                            💡 Ensure your remaining collateral maintains the 99% collateralization ratio
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       onClick={sellYKP}
@@ -926,6 +1694,10 @@ export default function TradePage() {
                           <span>{leverageDays} days</span>
                         </div>
                         <div className="flex justify-between">
+                          <span>Leverage Fee Rate:</span>
+                          <span>{(parseFloat(leverageFeeRate) / 10).toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span>Interest Rate:</span>
                           <span>3.9% APY + 0.1%/day</span>
                         </div>
@@ -933,8 +1705,33 @@ export default function TradePage() {
                           <span>Total Fee:</span>
                           <span>{leverageFee || "0"} LARRY</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span>YKP Tokens Minted:</span>
+                          <span>{leverageLarryAmount ? calculateTokensFromLarry((parseFloat(leverageLarryAmount) - parseFloat(leverageFee || "0")).toString()) : "0"} YKP</span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Current Position Info */}
+                    {userLoan && parseFloat(userLoan.borrowed) > 0 && (
+                      <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">⚠️ Existing Position</h4>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          <p>You already have an active leverage position:</p>
+                          <div className="flex justify-between">
+                            <span>Collateral:</span>
+                            <span>{userLoan.collateral} YKP</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Borrowed:</span>
+                            <span>{userLoan.borrowed} LARRY</span>
+                          </div>
+                          <div className="text-orange-600 text-xs mt-2">
+                            💡 Close your current position before creating a new leverage position
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       onClick={leveragePosition}

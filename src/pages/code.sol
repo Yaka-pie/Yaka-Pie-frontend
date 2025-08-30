@@ -604,7 +604,7 @@ contract MEME is ERC20Burnable, Ownable2Step, ReentrancyGuard {
     }
 
     //utils
-    function getBuyTokens(uint256 amount) external view returns (uint256) {
+(ui    function getBuyTokensnt256 amount) external view returns (uint256) {
         return
             (amount * (totalSupply()) * (buy_fee)) /
             (getBacking()) /
