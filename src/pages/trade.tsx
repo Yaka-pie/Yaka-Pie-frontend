@@ -34,13 +34,32 @@ const SELECTOR_MAP: Record<string, string> = {
   'sell(uint256)': '0xe4849b32',
   // Updated to match on-chain selector for leverage
   'leverage(uint256,uint256)': '0x5e96263c',
-  'borrow(uint256,uint256)': '0xc5ebeaec',
+  'borrow(uint256,uint256)': '0x0ecbcdab',
+  'borrowMore(uint256)': '0x9d0bf2e9',
   'Loans(address)': '0xa5b7c786',
   'getBacking()': '0x8dc654a2',
   'getBuyFee()': '0x39e899ee',
   'sell_fee()': '0x0e85e3a9',
   'buy_fee_leverage()': '0xf2cc0c18',
   'getBuyTokens(uint256)': '0x850e8c27',
+  'acceptOwnership()': '0x79ba5097',
+  'burn(uint256)': '0x42966c68',
+  'burnFrom(address,uint256)': '0x79cc6790',
+  'closePosition()': '0xc393d0e3',
+  'extendLoan(uint256)': '0x7ace2ac9',
+  'flashClosePosition()': '0x9d41ac3a',
+  'liquidate()': '0x28a07025',
+  'removeCollateral(uint256)': '0x3237c158',
+  'renounceOwnership()': '0x715018a6',
+  'repay(uint256)': '0x371fd8e6',
+  'setBuyFee(uint16)': '0x70c47671',
+  'setBuyFeeLeverage(uint16)': '0x17a5a97e',
+  'setFeeAddress(address)': '0x8705fcd4',
+  'setSellFee(uint16)': '0xe064648a',
+  'setStart(uint256,uint256)': '0x4286fa4e',
+  'transfer(address,uint256)': '0xa9059cbb',
+  'transferFrom(address,address,uint256)': '0x23b872dd',
+  'transferOwnership(address)': '0xf2fde38b',
 };
 
 const getSelectorForSignature = (signature: string): string => {
@@ -819,6 +838,46 @@ export default function TradePage() {
       console.log(`  Number of Days: ${numberOfDays}`);
       console.log(`  Final data: ${result}`);
       return result;
+    } else if (functionName === 'borrowMore') {
+      const larry = params[0] as string; // uint256
+      const selector = getSelectorForSignature('borrowMore(uint256)');
+      const result = selector + padNumber(larry);
+      console.log(`Encoding borrowMore function:`);
+      console.log(`  LARRY: ${larry}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'removeCollateral') {
+      const amount = params[0] as string; // uint256
+      const selector = getSelectorForSignature('removeCollateral(uint256)');
+      const result = selector + padNumber(amount);
+      console.log(`Encoding removeCollateral function:`);
+      console.log(`  Amount: ${amount}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'repay') {
+      const amount = params[0] as string; // uint256
+      const selector = getSelectorForSignature('repay(uint256)');
+      const result = selector + padNumber(amount);
+      console.log(`Encoding repay function:`);
+      console.log(`  Amount: ${amount}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'extendLoan') {
+      const days = params[0] as string; // uint256
+      const selector = getSelectorForSignature('extendLoan(uint256)');
+      const result = selector + padNumber(days);
+      console.log(`Encoding extendLoan function:`);
+      console.log(`  Days: ${days}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'closePosition') {
+      const selector = getSelectorForSignature('closePosition()');
+      console.log(`Encoding closePosition function: ${selector}`);
+      return selector;
+    } else if (functionName === 'flashClosePosition') {
+      const selector = getSelectorForSignature('flashClosePosition()');
+      console.log(`Encoding flashClosePosition function: ${selector}`);
+      return selector;
     }
 
     throw new Error(`Unsupported function: ${functionName}`);
@@ -1145,17 +1204,86 @@ export default function TradePage() {
 
   const borrowMoreLARRY = async () => {
     if (!isConnected || !borrowMoreAmount) return;
-    alert("Borrow More functionality will be implemented soon!");
+    setIsLoading(true);
+    setTxHash("");
+    try {
+      const amountFloat = parseFloat(borrowMoreAmount);
+      if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid LARRY amount");
+      const decimals = 18;
+      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountHex = '0x' + amountWei.toString(16);
+      const data = encodeFunctionCall('borrowMore', [amountHex]);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
+      if (txHash) {
+        setTxHash(txHash);
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Borrow more failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const removeCollateral = async () => {
     if (!isConnected || !removeCollateralAmount) return;
-    alert("Remove Collateral functionality will be implemented soon!");
+    setIsLoading(true);
+    setTxHash("");
+    try {
+      const amountFloat = parseFloat(removeCollateralAmount);
+      if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid amount");
+      const decimals = 18;
+      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountHex = '0x' + amountWei.toString(16);
+      const data = encodeFunctionCall('removeCollateral', [amountHex]);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
+      if (txHash) {
+        setTxHash(txHash);
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Remove collateral failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const repayLoan = async () => {
     if (!isConnected || !repayAmount) return;
-    alert("Repay Loan functionality will be implemented soon!");
+    setIsLoading(true);
+    setTxHash("");
+    try {
+      const amountFloat = parseFloat(repayAmount);
+      if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid amount");
+      const decimals = 18;
+      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountHex = '0x' + amountWei.toString(16);
+      const data = encodeFunctionCall('repay', [amountHex]);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
+      if (txHash) {
+        setTxHash(txHash);
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Repay failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const extendLoan = async () => {
@@ -1165,7 +1293,25 @@ export default function TradePage() {
 
   const closePosition = async () => {
     if (!isConnected) return;
-    alert("Close Position functionality will be implemented soon!");
+    setIsLoading(true);
+    setTxHash("");
+    try {
+      const data = encodeFunctionCall('closePosition', []);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
+      if (txHash) {
+        setTxHash(txHash);
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Close position failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const flashClosePosition = async () => {
