@@ -14,7 +14,7 @@ const inter = Inter({
 
 const YKP_TOKEN_ADDRESS = "0xd3323f8e7556c6A5C3cF3A143eAbaF0dE59cC43b";
 const LARRY_TOKEN_ADDRESS = "0x888d81e3ea5E8362B5f69188CBCF34Fa8da4b888";
-const SEI_CHAIN_ID = 1329; // SEI EVM Testnet
+const SEI_CHAIN_ID = 1329; // SEI EVM Mainnet
 
 interface EthereumError {
   code: number;
@@ -137,7 +137,7 @@ export default function TradePage() {
                   decimals: 18,
                 },
                 rpcUrls: ['https://evm-rpc.sei-apis.com'],
-                blockExplorerUrls: ['https://sei.explorers.guru/'],
+                blockExplorerUrls: ['https://seitrace.com'],
               }],
             });
           }
@@ -150,99 +150,185 @@ export default function TradePage() {
     }
   };
 
+  // Helper function to create contract call data
+  const encodeContractCall = (functionSig: string, params: string[]) => {
+    return functionSig + params.join('');
+  };
+
+  // Helper function to pad address
+  const padAddress = (address: string) => {
+    return address.slice(2).toLowerCase().padStart(64, '0');
+  };
+
+  // Helper function to pad number (handles hex strings)
+  const padNumber = (num: string | number) => {
+    if (typeof num === 'string' && num.startsWith('0x')) {
+      return num.slice(2).padStart(64, '0');
+    }
+    return Number(num).toString(16).padStart(64, '0');
+  };
+
   // Trading Functions
-  const executeTransaction = async (action: string, params: Record<string, unknown> = {}) => {
-    setIsLoading(true);
+  const executeTransaction = async (action: string, to: string, data: string, value: string = '0x0') => {
+    if (!window.ethereum || !isConnected) {
+      alert("Please connect your wallet first");
+      return null;
+    }
+
     try {
-      console.log(`${action} transaction...`, params);
+      const transactionParameters = {
+        to,
+        from: account,
+        value,
+        data,
+        gas: '0x55730', // 350000 in hex (enough for most contract calls)
+      };
 
-      // Simulate transaction
-      setTimeout(() => {
-        setTxHash("0x" + Math.random().toString(16).substr(2, 64));
-        setIsLoading(false);
-        alert(`${action} transaction submitted! Check your wallet for confirmation.`);
-      }, 2000);
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      }) as string;
 
-    } catch (error) {
+      return txHash;
+
+    } catch (error: any) {
       console.error("Transaction failed:", error);
-      setIsLoading(false);
-      alert("Transaction failed. Please try again.");
+      
+      if (error.code === 4001) {
+        throw new Error("Transaction cancelled by user");
+      } else {
+        throw new Error(error.message || "Transaction failed");
+      }
     }
   };
 
   const buyYKP = async () => {
     if (!isConnected || !buyLarryAmount) return;
-    await executeTransaction("Buy YKP", {
-      larryAmount: buyLarryAmount,
-      ykpAmount: buyYkpAmount
-    });
+    
+    setIsLoading(true);
+    setTxHash("");
+    
+    try {
+      // Convert LARRY amount to wei (18 decimals)
+      const larryAmountWei = (parseFloat(buyLarryAmount) * Math.pow(10, 18)).toString();
+      const larryAmountHex = '0x' + BigInt(larryAmountWei).toString(16);
+      
+      // Step 1: Approve LARRY tokens for the YKP contract
+      const approveData = encodeContractCall(
+        '0x095ea7b3', // approve(address,uint256)
+        [
+          padAddress(YKP_TOKEN_ADDRESS), // spender (YKP contract)
+          padNumber(larryAmountHex) // amount in hex
+        ]
+      );
+      
+      console.log("Step 1: Approving LARRY tokens...");
+      const approveTxHash = await executeTransaction("Approve LARRY", LARRY_TOKEN_ADDRESS, approveData);
+      
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("LARRY tokens approved! Hash:", approveTxHash);
+      
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Call buy function on YKP contract
+      const buyData = encodeContractCall(
+        '0x6c8f61b4', // buy(address,uint256) function signature
+        [
+          padAddress(account), // receiver address
+          padNumber(larryAmountHex) // amount in hex
+        ]
+      );
+      
+      console.log("Step 2: Buying YKP tokens...");
+      const buyTxHash = await executeTransaction("Buy YKP", YKP_TOKEN_ADDRESS, buyData);
+      
+      if (buyTxHash) {
+        setTxHash(buyTxHash);
+        alert(`Buy YKP transaction submitted! Transaction hash: ${buyTxHash}`);
+      }
+      
+    } catch (error: any) {
+      console.error("Buy YKP failed:", error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const sellYKP = async () => {
     if (!isConnected || !sellYkpAmount) return;
-    await executeTransaction("Sell YKP", {
-      ykpAmount: sellYkpAmount,
-      larryAmount: sellLarryAmount
-    });
+    
+    setIsLoading(true);
+    setTxHash("");
+    
+    try {
+      // Convert YKP amount to wei (18 decimals)
+      const ykpAmountWei = (parseFloat(sellYkpAmount) * Math.pow(10, 18)).toString();
+      const ykpAmountHex = '0x' + BigInt(ykpAmountWei).toString(16);
+      
+      // Call sell function on YKP contract
+      const sellData = encodeContractCall(
+        '0xe4849b32', // sell(uint256) function signature  
+        [padNumber(ykpAmountHex)]
+      );
+      
+      const txHash = await executeTransaction("Sell YKP", YKP_TOKEN_ADDRESS, sellData);
+      
+      if (txHash) {
+        setTxHash(txHash);
+        alert(`Sell YKP transaction submitted! Transaction hash: ${txHash}`);
+      }
+      
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const leveragePosition = async () => {
     if (!isConnected || !leverageLarryAmount || !leverageDays) return;
-    await executeTransaction("Leverage Position", {
-      larryAmount: leverageLarryAmount,
-      days: leverageDays,
-      fee: leverageFee
-    });
+    alert("Leverage functionality will be implemented soon!");
   };
 
   const borrowLARRY = async () => {
     if (!isConnected || !borrowLarryAmount || !borrowDays) return;
-    await executeTransaction("Borrow LARRY", {
-      larryAmount: borrowLarryAmount,
-      days: borrowDays,
-      collateral: borrowCollateral
-    });
+    alert("Borrow functionality will be implemented soon!");
   };
 
   const borrowMoreLARRY = async () => {
     if (!isConnected || !borrowMoreAmount) return;
-    await executeTransaction("Borrow More LARRY", {
-      additionalAmount: borrowMoreAmount,
-      collateral: borrowMoreCollateral
-    });
+    alert("Borrow More functionality will be implemented soon!");
   };
 
   const removeCollateral = async () => {
     if (!isConnected || !removeCollateralAmount) return;
-    await executeTransaction("Remove Collateral", {
-      amount: removeCollateralAmount
-    });
+    alert("Remove Collateral functionality will be implemented soon!");
   };
 
   const repayLoan = async () => {
     if (!isConnected || !repayAmount) return;
-    await executeTransaction("Repay Loan", {
-      amount: repayAmount
-    });
+    alert("Repay Loan functionality will be implemented soon!");
   };
 
   const extendLoan = async () => {
     if (!isConnected || !extendDays) return;
-    await executeTransaction("Extend Loan", {
-      additionalDays: extendDays
-    });
+    alert("Extend Loan functionality will be implemented soon!");
   };
 
   const closePosition = async () => {
     if (!isConnected) return;
-    await executeTransaction("Close Position");
+    alert("Close Position functionality will be implemented soon!");
   };
 
   const flashClosePosition = async () => {
     if (!isConnected || !flashCloseCollateral) return;
-    await executeTransaction("Flash Close Position", {
-      collateral: flashCloseCollateral
-    });
+    alert("Flash Close functionality will be implemented soon!");
   };
 
   return (
@@ -307,29 +393,14 @@ export default function TradePage() {
         {/* Network Info */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Network Information</h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="grid md:grid-cols-4 gap-4 text-sm">
             <div>
               <div className="font-semibold text-gray-700">Network</div>
-              <div className="text-gray-600">SEI EVM</div>
+              <div className="text-gray-600">SEI EVM Mainnet</div>
             </div>
             <div>
-              <div className="font-semibold text-gray-700">YKP Token</div>
-              <div className="text-gray-600 font-mono text-xs">{YKP_TOKEN_ADDRESS}</div>
-            </div>
-            <div>
-              <div className="font-semibold text-gray-700">LARRY Token</div>
-              <div className="text-gray-600 font-mono text-xs">{LARRY_TOKEN_ADDRESS}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Network Info */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Network Information</h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <div className="font-semibold text-gray-700">Network</div>
-              <div className="text-gray-600">SEI EVM</div>
+              <div className="font-semibold text-gray-700">Chain ID</div>
+              <div className="text-gray-600">{SEI_CHAIN_ID}</div>
             </div>
             <div>
               <div className="font-semibold text-gray-700">YKP Token</div>
@@ -966,7 +1037,7 @@ export default function TradePage() {
                       Transaction Hash: <code className="bg-green-100 px-2 py-1 rounded text-xs">{txHash}</code>
                     </p>
                     <a
-                      href={`https://sei.explorers.guru/transaction/${txHash}`}
+                      href={`https://seitrace.com/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-800 underline text-sm mt-2 inline-block"
