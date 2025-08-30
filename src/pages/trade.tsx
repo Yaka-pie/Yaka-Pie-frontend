@@ -32,7 +32,8 @@ const SELECTOR_MAP: Record<string, string> = {
   // YKP contract custom
   'buy(address,uint256)': '0xcce7ec13',
   'sell(uint256)': '0xe4849b32',
-  'leverage(uint256,uint256)': '0x29092d0e',
+  // Updated to match on-chain selector for leverage
+  'leverage(uint256,uint256)': '0x5e96263c',
   'borrow(uint256,uint256)': '0xc5ebeaec',
   'Loans(address)': '0xa5b7c786',
   'getBacking()': '0x8dc654a2',
@@ -800,7 +801,8 @@ export default function TradePage() {
     } else if (functionName === 'leverage') {
       const larry = params[0] as string; // uint256
       const numberOfDays = params[1] as string; // uint256
-      const result = '0x29092d0e' + padNumber(larry) + padNumber(numberOfDays);
+      const selector = getSelectorForSignature('leverage(uint256,uint256)');
+      const result = selector + padNumber(larry) + padNumber(numberOfDays);
       console.log(`Encoding leverage function:`);
       console.log(`  LARRY: ${larry}`);
       console.log(`  Number of Days: ${numberOfDays}`);
