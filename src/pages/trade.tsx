@@ -715,7 +715,7 @@ export default function TradePage() {
                           value={leverageLarryAmount}
                           onChange={(e) => setLeverageLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
@@ -728,7 +728,7 @@ export default function TradePage() {
                       <select
                         value={leverageDays}
                         onChange={(e) => setLeverageDays(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                       >
                         <option value="7">7 Days</option>
                         <option value="14">14 Days</option>
@@ -748,7 +748,7 @@ export default function TradePage() {
                           value={leverageFee}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
@@ -812,7 +812,7 @@ export default function TradePage() {
                           value={borrowLarryAmount}
                           onChange={(e) => setBorrowLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
@@ -825,7 +825,7 @@ export default function TradePage() {
                       <select
                         value={borrowDays}
                         onChange={(e) => setBorrowDays(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                       >
                         <option value="7">7 Days</option>
                         <option value="14">14 Days</option>
@@ -845,7 +845,7 @@ export default function TradePage() {
                           value={borrowCollateral}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                       </div>
@@ -909,7 +909,7 @@ export default function TradePage() {
                           value={borrowMoreAmount}
                           onChange={(e) => setBorrowMoreAmount(e.target.value)}
                           placeholder="Enter additional LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
@@ -968,7 +968,7 @@ export default function TradePage() {
                                 value={removeCollateralAmount}
                                 onChange={(e) => setRemoveCollateralAmount(e.target.value)}
                                 placeholder="Enter YKP amount"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                               />
                               <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                             </div>
@@ -996,7 +996,7 @@ export default function TradePage() {
                                 value={repayAmount}
                                 onChange={(e) => setRepayAmount(e.target.value)}
                                 placeholder="Enter LARRY amount"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                               />
                               <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                             </div>
@@ -1022,7 +1022,7 @@ export default function TradePage() {
                           <select
                             value={extendDays}
                             onChange={(e) => setExtendDays(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                           >
                             <option value="7">7 Days</option>
                             <option value="14">14 Days</option>
@@ -1071,7 +1071,7 @@ export default function TradePage() {
                           value={flashCloseCollateral}
                           onChange={(e) => setFlashCloseCollateral(e.target.value)}
                           placeholder="Enter YKP collateral amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                       </div>
