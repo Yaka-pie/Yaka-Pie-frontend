@@ -1,6 +1,97 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Geist, Inter } from "next/font/google";
+// YAKA PIE Contract ABI - moved from separate abi.json file
+const YAKA_PIE_ABI = [
+  {
+    "inputs": [
+      {"internalType": "address", "name": "_larry", "type": "address"},
+      {"internalType": "string", "name": "_name", "type": "string"},
+      {"internalType": "string", "name": "_symbol", "type": "string"}
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  // Core trading functions
+  {
+    "inputs": [
+      {"internalType": "address", "name": "receiver", "type": "address"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "buy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "tokens", "type": "uint256"}
+    ],
+    "name": "sell",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "spender", "type": "address"},
+      {"internalType": "uint256", "name": "value", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "account", "type": "address"}
+    ],
+    "name": "balanceOf",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Leverage and borrowing functions
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "larry", "type": "uint256"},
+      {"internalType": "uint256", "name": "numberOfDays", "type": "uint256"}
+    ],
+    "name": "leverage",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "larry", "type": "uint256"},
+      {"internalType": "uint256", "name": "numberOfDays", "type": "uint256"}
+    ],
+    "name": "borrow",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "removeCollateral",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "repay",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // Full ABI available in the complete contract interface
+];
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,7 +103,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const YKP_TOKEN_ADDRESS = "0xd3323f8e7556c6A5C3cF3A143eAbaF0dE59cC43b";
+const YKP_TOKEN_ADDRESS = "0x008c8c362cd46a9e41957cc11ee812647233dff1";
 const LARRY_TOKEN_ADDRESS = "0x888d81e3ea5E8362B5f69188CBCF34Fa8da4b888";
 const SEI_CHAIN_ID = 1329; // SEI EVM Mainnet
 
@@ -20,6 +111,8 @@ interface EthereumError {
   code: number;
   message: string;
 }
+
+// Removed unused ABIFunction interface
 
 declare global {
   interface Window {
@@ -212,6 +305,72 @@ export default function TradePage() {
     return Number(num).toString(16).padStart(64, '0');
   };
 
+  // ABI-based function call encoding
+  const encodeFunctionCall = (functionName: string, params: unknown[]) => {
+    // Simple ABI encoding for our specific functions
+    if (functionName === 'buy') {
+      const receiver = params[0] as string; // address
+      const amount = params[1] as string; // uint256
+      const result = '0xcce7ec13' + padAddress(receiver) + padNumber(amount);
+      console.log(`Encoding buy function:`);
+      console.log(`  Receiver: ${receiver}`);
+      console.log(`  Amount: ${amount}`);
+      console.log(`  Padded receiver: ${padAddress(receiver)}`);
+      console.log(`  Padded amount: ${padNumber(amount)}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'sell') {
+      const tokens = params[0] as string; // uint256
+      const result = '0xe4849b32' + padNumber(tokens);
+      console.log(`Encoding sell function:`);
+      console.log(`  Tokens: ${tokens}`);
+      console.log(`  Padded tokens: ${padNumber(tokens)}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    } else if (functionName === 'approve') {
+      const spender = params[0] as string; // address
+      const amount = params[1] as string; // uint256
+      const result = '0x095ea7b3' + padAddress(spender) + padNumber(amount);
+      console.log(`Encoding approve function:`);
+      console.log(`  Spender: ${spender}`);
+      console.log(`  Amount: ${amount}`);
+      console.log(`  Padded spender: ${padAddress(spender)}`);
+      console.log(`  Padded amount: ${padNumber(amount)}`);
+      console.log(`  Final data: ${result}`);
+      return result;
+    }
+
+    throw new Error(`Unsupported function: ${functionName}`);
+  };
+
+  // Validation function to test encoding
+  const testEncoding = () => {
+    console.log("=== FUNCTION SIGNATURE VERIFICATION ===");
+    console.log("Buy function signature: 0xcce7ec13 (from transaction data)");
+    console.log("Sell function signature: 0xe4849b32 (ERC20 standard)");
+
+    console.log("=== ENCODING TEST ===");
+    const testAddress = "0x3af1789536d88d3dcf2e200ab0ff1b48f8012e41";
+    const testAmount = "0x0de0b6b3a7640000"; // 10^18 = 1 token
+
+    const testBuyData = encodeFunctionCall('buy', [testAddress, testAmount]);
+    console.log("Test Buy Data:", testBuyData);
+    console.log("Expected:", "0xcce7ec13" + padAddress(testAddress) + padNumber(testAmount));
+
+    // Compare with user's example
+    const userExample = "0xcce7ec130000000000000000000000003af1789536d88d3dcf2e200ab0ff1b48f8012e410000000000000000000000000000000000000000000000000de0b6b3a7640000";
+    console.log("User's example:", userExample);
+    console.log("Match:", testBuyData === userExample ? "✅ YES" : "❌ NO");
+
+    // Test sell function
+    const testSellAmount = "0x0de0b6b3a7640000"; // 10^18 = 1 token
+    const testSellData = encodeFunctionCall('sell', [testSellAmount]);
+    console.log("Test Sell Data:", testSellData);
+    console.log("Expected sell data:", "0xe4849b32" + padNumber(testSellAmount));
+
+    console.log("==================");
+  };
+
   // Trading Functions
   const executeTransaction = async (action: string, to: string, data: string, value: string = '0x0') => {
     if (!window.ethereum || !isConnected) {
@@ -235,13 +394,14 @@ export default function TradePage() {
 
       return txHash;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Transaction failed:", error);
-      
-      if (error.code === 4001) {
+
+      const err = error as { code?: number; message?: string };
+      if (err.code === 4001) {
         throw new Error("Transaction cancelled by user");
       } else {
-        throw new Error(error.message || "Transaction failed");
+        throw new Error(err.message || "Transaction failed");
       }
     }
   };
@@ -258,37 +418,30 @@ export default function TradePage() {
       const larryAmountHex = '0x' + BigInt(larryAmountWei).toString(16);
       
       // Step 1: Approve LARRY tokens for the YKP contract
-      const approveData = encodeContractCall(
-        '0x095ea7b3', // approve(address,uint256)
-        [
-          padAddress(YKP_TOKEN_ADDRESS), // spender (YKP contract)
-          padNumber(larryAmountHex) // amount in hex
-        ]
-      );
-      
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, larryAmountHex]);
+
       console.log("Step 1: Approving LARRY tokens...");
       const approveTxHash = await executeTransaction("Approve LARRY", LARRY_TOKEN_ADDRESS, approveData);
-      
+
       if (!approveTxHash) {
         setIsLoading(false);
         return;
       }
-      
+
       console.log("LARRY tokens approved! Hash:", approveTxHash);
-      
+
       // Wait a moment for approval transaction to be mined
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Step 2: Call buy function on YKP contract
-      const buyData = encodeContractCall(
-        '0x6c8f61b4', // buy(address,uint256) function signature
-        [
-          padAddress(account), // receiver address
-          padNumber(larryAmountHex) // amount in hex
-        ]
-      );
-      
+      const buyData = encodeFunctionCall('buy', [account, larryAmountHex]);
+
       console.log("Step 2: Buying YKP tokens...");
+      console.log("Account (receiver):", account);
+      console.log("LARRY Amount (hex):", larryAmountHex);
+      console.log("Buy Data:", buyData);
+      console.log("Expected buy data format:", '0x6c8f61b4' + padAddress(account) + padNumber(larryAmountHex));
+
       const buyTxHash = await executeTransaction("Buy YKP", YKP_TOKEN_ADDRESS, buyData);
       
       if (buyTxHash) {
@@ -301,9 +454,10 @@ export default function TradePage() {
         }, 3000);
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Buy YKP failed:", error);
-      alert(error.message);
+      const err = error as { message?: string };
+      alert(err.message || "Buy YKP failed");
     } finally {
       setIsLoading(false);
     }
@@ -321,11 +475,13 @@ export default function TradePage() {
       const ykpAmountHex = '0x' + BigInt(ykpAmountWei).toString(16);
       
       // Call sell function on YKP contract
-      const sellData = encodeContractCall(
-        '0xe4849b32', // sell(uint256) function signature  
-        [padNumber(ykpAmountHex)]
-      );
-      
+      const sellData = encodeFunctionCall('sell', [ykpAmountHex]);
+
+      console.log("Selling YKP tokens...");
+      console.log("YKP Amount (hex):", ykpAmountHex);
+      console.log("Sell Data:", sellData);
+      console.log("Expected sell data format:", '0xe4849b32' + padNumber(ykpAmountHex));
+
       const txHash = await executeTransaction("Sell YKP", YKP_TOKEN_ADDRESS, sellData);
       
       if (txHash) {
@@ -338,8 +494,9 @@ export default function TradePage() {
         }, 3000);
       }
       
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Sell YKP failed");
     } finally {
       setIsLoading(false);
     }
@@ -425,6 +582,12 @@ export default function TradePage() {
                     <div className="font-semibold">LARRY: {larryBalance}</div>
                     <div className="font-semibold">YKP: {ykpBalance}</div>
                   </div>
+                  <button
+                    onClick={testEncoding}
+                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+                  >
+                    Test Encoding
+                  </button>
                   <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                     {account.slice(0, 6)}...{account.slice(-4)}
                   </div>
