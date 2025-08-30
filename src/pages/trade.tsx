@@ -36,12 +36,12 @@ const SELECTOR_MAP: Record<string, string> = {
   'leverage(uint256,uint256)': '0x5e96263c',
   'borrow(uint256,uint256)': '0x0ecbcdab',
   'borrowMore(uint256)': '0x9d0bf2e9',
-  'Loans(address)': '0xa5b7c786',
-  'getBacking()': '0x8dc654a2',
-  'getBuyFee()': '0x39e899ee',
-  'sell_fee()': '0x0e85e3a9',
-  'buy_fee_leverage()': '0xf2cc0c18',
-  'getBuyTokens(uint256)': '0x850e8c27',
+  'Loans(address)': '0xa925e4a4',
+  'getBacking()': '0xc94220ab',
+  'getBuyFee()': '0x8f818b90',
+  'sell_fee()': '0xabd545bf',
+  'buy_fee_leverage()': '0x36189d43',
+  'getBuyTokens(uint256)': '0x7545823b',
   'acceptOwnership()': '0x79ba5097',
   'burn(uint256)': '0x42966c68',
   'burnFrom(address,uint256)': '0x79cc6790',
@@ -60,6 +60,28 @@ const SELECTOR_MAP: Record<string, string> = {
   'transfer(address,uint256)': '0xa9059cbb',
   'transferFrom(address,address,uint256)': '0x23b872dd',
   'transferOwnership(address)': '0xf2fde38b',
+  // Additional read-only selectors per provided list
+  'BorrowedByDate(uint256)': '0x4fbf3ab0',
+  'CollateralByDate(uint256)': '0xc962a4b5',
+  'FEE_ADDRESS()': '0xeb1edd61',
+  'LARRYtoTOKENS(uint256)': '0x2b50aeb2',
+  'LARRYtoTOKENSCeil(uint256)': '0xbe96f7ca',
+  'TOKENStoLARRY(uint256)': '0xf61bc497',
+  'backingToken()': '0x47e621b7',
+  'getBuyAmount(uint256)': '0x1fb87f39',
+  'getInterestFee(uint256,uint256)': '0x035b7c4b',
+  'getLoanByAddress(address)': '0x95ced06f',
+  'getLoansExpiringByDate(uint256)': '0x024cad3b',
+  'getMidnightTimestamp(uint256)': '0xe3eb5ed3',
+  'getTotalBorrowed()': '0x0307c4a1',
+  'getTotalCollateral()': '0xd6eb5910',
+  'isLoanExpired(address)': '0x70f84ba9',
+  'lastLiquidationDate()': '0x3421f750',
+  'lastPrice()': '0x053f14da',
+  'leverageFee(uint256,uint256)': '0x3be4e598',
+  'owner()': '0x8da5cb5b',
+  'pendingOwner()': '0xe30c3978',
+  'start()': '0xbe9a6555',
 };
 
 const getSelectorForSignature = (signature: string): string => {
@@ -107,6 +129,15 @@ export default function TradePage() {
     
     initializeContract();
   }, []);
+
+  // Refresh user loan when account connects/changes or when Manage tab is opened
+  useEffect(() => {
+    if (isConnected && account) {
+      if (activeTab === 'manage') {
+        fetchUserLoan(account);
+      }
+    }
+  }, [isConnected, account, activeTab]);
 
   // Buy/Sell states
   const [buyLarryAmount, setBuyLarryAmount] = useState("");
@@ -2063,6 +2094,17 @@ export default function TradePage() {
                 {activeTab === "manage" && (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Manage Your Position</h2>
+
+                    {/* Current Loan Summary */}
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Current Loan</h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                        <div className="flex justify-between"><span>Collateral</span><span>{userLoan.collateral} YKP</span></div>
+                        <div className="flex justify-between"><span>Borrowed</span><span>{userLoan.borrowed} LARRY</span></div>
+                        <div className="flex justify-between"><span>Duration</span><span>{userLoan.numberOfDays} days</span></div>
+                        <div className="flex justify-between"><span>End Date</span><span>{userLoan.endDate !== "0" ? new Date(parseInt(userLoan.endDate) * 1000).toLocaleDateString() : "N/A"}</span></div>
+                      </div>
+                    </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
