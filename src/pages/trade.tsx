@@ -387,9 +387,23 @@ export default function TradePage() {
     setTxHash("");
     
     try {
-      // Convert LARRY amount to wei (18 decimals)
-      const larryAmountWei = (parseFloat(buyLarryAmount) * Math.pow(10, 18)).toString();
-      const larryAmountHex = '0x' + BigInt(larryAmountWei).toString(16);
+      // Convert LARRY amount to wei (18 decimals) - handle large numbers safely
+      const larryAmountFloat = parseFloat(buyLarryAmount);
+      if (isNaN(larryAmountFloat) || larryAmountFloat <= 0) {
+        throw new Error("Invalid LARRY amount");
+      }
+
+      // Check for extremely large numbers that could cause precision issues
+      // Allow up to 1 billion tokens (reasonable for DeFi trading)
+      const maxReasonableAmount = 1000000000; // 1 billion
+      if (larryAmountFloat > maxReasonableAmount) {
+        throw new Error("Amount too large. Maximum allowed is 1,000,000,000 LARRY tokens.");
+      }
+
+      // Use a safer method to handle large numbers without scientific notation
+      const decimals = 18;
+      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountHex = '0x' + larryAmountWei.toString(16);
       
       // Step 1: Approve LARRY tokens for the YKP contract
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, larryAmountHex]);
@@ -444,9 +458,23 @@ export default function TradePage() {
     setTxHash("");
     
     try {
-      // Convert YKP amount to wei (18 decimals)
-      const ykpAmountWei = (parseFloat(sellYkpAmount) * Math.pow(10, 18)).toString();
-      const ykpAmountHex = '0x' + BigInt(ykpAmountWei).toString(16);
+      // Convert YKP amount to wei (18 decimals) - handle large numbers safely
+      const ykpAmountFloat = parseFloat(sellYkpAmount);
+      if (isNaN(ykpAmountFloat) || ykpAmountFloat <= 0) {
+        throw new Error("Invalid YKP amount");
+      }
+
+      // Check for extremely large numbers that could cause precision issues
+      // Allow up to 1 billion tokens (reasonable for DeFi trading)
+      const maxReasonableAmount = 1000000000; // 1 billion
+      if (ykpAmountFloat > maxReasonableAmount) {
+        throw new Error("Amount too large. Maximum allowed is 1,000,000,000 YKP tokens.");
+      }
+
+      // Use a safer method to handle large numbers without scientific notation
+      const decimals = 18;
+      const ykpAmountWei = BigInt(Math.floor(ykpAmountFloat * Math.pow(10, decimals)));
+      const ykpAmountHex = '0x' + ykpAmountWei.toString(16);
       
       // Call sell function on YKP contract
       const sellData = encodeFunctionCall('sell', [ykpAmountHex]);
