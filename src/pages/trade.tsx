@@ -236,7 +236,9 @@ export default function TradePage() {
       }) as string;
       
       const ykpBalanceWei = BigInt(ykpResult);
-      const ykpBalanceFormatted = (Number(ykpBalanceWei) / Math.pow(10, 18)).toFixed(4);
+      const ykpBalanceFloat = Number(ykpBalanceWei) / Math.pow(10, 18);
+      const ykpBalanceFloored = Math.floor(ykpBalanceFloat * 1e4) / 1e4; // avoid rounding up
+      const ykpBalanceFormatted = ykpBalanceFloored.toFixed(4);
       setYkpBalance(ykpBalanceFormatted);
       
     } catch (error) {
@@ -951,6 +953,7 @@ export default function TradePage() {
 
       // Use a safer method to handle large numbers without scientific notation
       const decimals = 18;
+      // Use floor to avoid attempting to sell more than balance due to float rounding
       const ykpAmountWei = BigInt(Math.floor(ykpAmountFloat * Math.pow(10, decimals)));
       const ykpAmountHex = '0x' + ykpAmountWei.toString(16);
       
@@ -1174,7 +1177,9 @@ export default function TradePage() {
   };
 
   const setMaxYkp = () => {
-    setSellYkpAmount(ykpBalance);
+    // Use a conservative amount to avoid exceeding balance due to rounding
+    const amt = ykpBalance ? (Math.floor(parseFloat(ykpBalance) * 1e4) / 1e4).toFixed(4) : "0";
+    setSellYkpAmount(amt);
   };
 
   return (
