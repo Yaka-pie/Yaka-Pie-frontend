@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Geist, Inter } from "next/font/google";
 
 const geistSans = Geist({
@@ -41,9 +42,9 @@ export default function Home() {
               <a href="#features" className="text-gray-700 hover:text-yellow-600 transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-700 hover:text-yellow-600 transition-colors">How It Works</a>
               <a href="#contract" className="text-gray-700 hover:text-yellow-600 transition-colors">Smart Contract</a>
-              <button className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105">
-                Launch App
-              </button>
+              <Link href="/trade" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105">
+                Trade YKP
+              </Link>
             </div>
 
             <button className="md:hidden text-gray-700">
@@ -138,10 +139,10 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
+                <Link href="/trade" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
                   <span>🚀</span>
-                  Buy YKP Now
-                </button>
+                  Trade YKP Now
+                </Link>
                 <button className="border-2 border-yellow-400 text-yellow-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-50 transition-all duration-300 flex items-center justify-center gap-2">
                   <span>📖</span>
                   Learn More
