@@ -1758,34 +1758,7 @@ export default function TradePage() {
                       </div>
                     </div>
 
-                    {/* Leverage Position Warning */}
-                    {userLoan && parseFloat(userLoan.borrowed) > 0 && (
-                      <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                        <h4 className="font-semibold text-gray-900 mb-2">⚠️ Leverage Position Alert</h4>
-                        <div className="space-y-1 text-sm text-gray-700">
-                          <p className="text-red-600">You have an active leverage position. Selling YKP tokens might affect your collateral ratio.</p>
-                          <div className="flex justify-between">
-                            <span>Your Collateral:</span>
-                            <span>{userLoan.collateral} YKP</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Amount Selling:</span>
-                            <span>{sellYkpAmount || "0"} YKP</span>
-                          </div>
-                          {sellYkpAmount && parseFloat(sellYkpAmount) > 0 && (
-                            <div className="flex justify-between font-semibold">
-                              <span>Remaining Collateral:</span>
-                              <span className={parseFloat(userLoan.collateral) - parseFloat(sellYkpAmount) < parseFloat(userLoan.borrowed) / 0.99 ? "text-red-600" : "text-green-600"}>
-                                {(parseFloat(userLoan.collateral) - parseFloat(sellYkpAmount)).toFixed(4)} YKP
-                              </span>
-                            </div>
-                          )}
-                          <div className="text-red-600 text-xs mt-2">
-                            💡 Ensure your remaining collateral maintains the 99% collateralization ratio
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* Time-based loan; leverage warning removed */}
 
                     <button
                       onClick={sellYKP}
