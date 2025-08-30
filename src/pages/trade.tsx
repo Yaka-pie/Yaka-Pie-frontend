@@ -164,8 +164,7 @@ export default function TradePage() {
   const [repayAmount, setRepayAmount] = useState("");
   const [extendDays, setExtendDays] = useState("30");
 
-  // Flash Close states
-  const [flashCloseCollateral, setFlashCloseCollateral] = useState("");
+  // Flash Close states removed
   
   // Contract state for leverage calculations
   const [contractBacking, setContractBacking] = useState("0");
@@ -1345,10 +1344,7 @@ export default function TradePage() {
     }
   };
 
-  const flashClosePosition = async () => {
-    if (!isConnected || !flashCloseCollateral) return;
-    alert("Flash Close functionality will be implemented soon!");
-  };
+  // Flash close removed
 
   // Max button functions
   const setMaxLarry = () => {
@@ -1490,7 +1486,7 @@ export default function TradePage() {
                 { id: "borrow", label: "Borrow", icon: "🏦" },
                 { id: "borrow-more", label: "Borrow More", icon: "📈" },
                 { id: "manage", label: "Manage Position", icon: "⚙️" },
-                { id: "flash", label: "Flash Actions", icon: "⚡" }
+                
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -2208,64 +2204,7 @@ export default function TradePage() {
                   </div>
                 )}
 
-                {/* Flash Actions Tab */}
-                {activeTab === "flash" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Flash Actions</h2>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        YKP Collateral Amount
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          value={flashCloseCollateral}
-                          onChange={(e) => setFlashCloseCollateral(e.target.value)}
-                          placeholder="Enter YKP collateral amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
-                        />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
-                      </div>
-                    </div>
-
-                    <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-200">
-                      <h4 className="font-semibold text-gray-900 mb-2">Flash Close Details</h4>
-                      <div className="space-y-1 text-sm text-gray-700">
-                        <div className="flex justify-between">
-                          <span>Collateral Amount:</span>
-                          <span>{flashCloseCollateral || "0"} YKP</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Flash Fee:</span>
-                          <span>{flashCloseCollateral ? (parseFloat(flashCloseCollateral) * 0.01).toFixed(4) : "0"} YKP</span>
-                        </div>
-                        <div className="text-cyan-600 text-sm mt-2">
-                          ⚡ Instant position closure with flash loan mechanics
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={flashClosePosition}
-                      disabled={!flashCloseCollateral || isLoading}
-                      className="w-full bg-gradient-to-r from-cyan-400 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Processing...
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-2">
-                          <span>⚡</span>
-                          Flash Close Position
-                          <span>💫</span>
-                        </div>
-                      )}
-                    </button>
-                  </div>
-                )}
+                
 
                 {/* Transaction Status */}
                 {txHash && (
