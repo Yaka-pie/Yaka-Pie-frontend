@@ -343,33 +343,7 @@ export default function TradePage() {
     throw new Error(`Unsupported function: ${functionName}`);
   };
 
-  // Validation function to test encoding
-  const testEncoding = () => {
-    console.log("=== FUNCTION SIGNATURE VERIFICATION ===");
-    console.log("Buy function signature: 0xcce7ec13 (from transaction data)");
-    console.log("Sell function signature: 0xe4849b32 (ERC20 standard)");
 
-    console.log("=== ENCODING TEST ===");
-    const testAddress = "0x3af1789536d88d3dcf2e200ab0ff1b48f8012e41";
-    const testAmount = "0x0de0b6b3a7640000"; // 10^18 = 1 token
-
-    const testBuyData = encodeFunctionCall('buy', [testAddress, testAmount]);
-    console.log("Test Buy Data:", testBuyData);
-    console.log("Expected:", "0xcce7ec13" + padAddress(testAddress) + padNumber(testAmount));
-
-    // Compare with user's example
-    const userExample = "0xcce7ec130000000000000000000000003af1789536d88d3dcf2e200ab0ff1b48f8012e410000000000000000000000000000000000000000000000000de0b6b3a7640000";
-    console.log("User's example:", userExample);
-    console.log("Match:", testBuyData === userExample ? "✅ YES" : "❌ NO");
-
-    // Test sell function
-    const testSellAmount = "0x0de0b6b3a7640000"; // 10^18 = 1 token
-    const testSellData = encodeFunctionCall('sell', [testSellAmount]);
-    console.log("Test Sell Data:", testSellData);
-    console.log("Expected sell data:", "0xe4849b32" + padNumber(testSellAmount));
-
-    console.log("==================");
-  };
 
   // Trading Functions
   const executeTransaction = async (action: string, to: string, data: string, value: string = '0x0') => {
@@ -582,12 +556,7 @@ export default function TradePage() {
                     <div className="font-semibold">LARRY: {larryBalance}</div>
                     <div className="font-semibold">YKP: {ykpBalance}</div>
                   </div>
-                  <button
-                    onClick={testEncoding}
-                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
-                  >
-                    Test Encoding
-                  </button>
+
                   <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                     {account.slice(0, 6)}...{account.slice(-4)}
                   </div>
