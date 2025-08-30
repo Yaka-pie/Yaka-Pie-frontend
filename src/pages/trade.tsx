@@ -37,6 +37,8 @@ export default function TradePage() {
   const [activeTab, setActiveTab] = useState("buy");
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState("");
+  const [larryBalance, setLarryBalance] = useState("0");
+  const [ykpBalance, setYkpBalance] = useState("0");
 
   // Buy/Sell states
   const [buyLarryAmount, setBuyLarryAmount] = useState("");
@@ -108,6 +110,44 @@ export default function TradePage() {
     }
   }, [borrowLarryAmount]);
 
+  // Function to fetch user balances
+  const fetchBalances = async (userAccount: string) => {
+    if (!window.ethereum) return;
+    
+    try {
+      // Get LARRY balance
+      const larryBalanceData = encodeContractCall('0x70a08231', [padAddress(userAccount)]); // balanceOf
+      const larryResult = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: LARRY_TOKEN_ADDRESS,
+          data: larryBalanceData
+        }, 'latest']
+      }) as string;
+      
+      const larryBalanceWei = BigInt(larryResult);
+      const larryBalanceFormatted = (Number(larryBalanceWei) / Math.pow(10, 18)).toFixed(4);
+      setLarryBalance(larryBalanceFormatted);
+      
+      // Get YKP balance  
+      const ykpBalanceData = encodeContractCall('0x70a08231', [padAddress(userAccount)]); // balanceOf
+      const ykpResult = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: ykpBalanceData
+        }, 'latest']
+      }) as string;
+      
+      const ykpBalanceWei = BigInt(ykpResult);
+      const ykpBalanceFormatted = (Number(ykpBalanceWei) / Math.pow(10, 18)).toFixed(4);
+      setYkpBalance(ykpBalanceFormatted);
+      
+    } catch (error) {
+      console.error("Failed to fetch balances:", error);
+    }
+  };
+
   const connectWallet = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
@@ -142,6 +182,10 @@ export default function TradePage() {
             });
           }
         }
+        
+        // Fetch balances after connection
+        await fetchBalances(accounts[0]);
+        
       } catch (error) {
         console.error("Failed to connect wallet:", error);
       }
@@ -250,6 +294,11 @@ export default function TradePage() {
       if (buyTxHash) {
         setTxHash(buyTxHash);
         alert(`Buy YKP transaction submitted! Transaction hash: ${buyTxHash}`);
+        
+        // Refresh balances after successful transaction
+        setTimeout(() => {
+          fetchBalances(account);
+        }, 3000);
       }
       
     } catch (error: any) {
@@ -282,6 +331,11 @@ export default function TradePage() {
       if (txHash) {
         setTxHash(txHash);
         alert(`Sell YKP transaction submitted! Transaction hash: ${txHash}`);
+        
+        // Refresh balances after successful transaction
+        setTimeout(() => {
+          fetchBalances(account);
+        }, 3000);
       }
       
     } catch (error: any) {
@@ -331,6 +385,15 @@ export default function TradePage() {
     alert("Flash Close functionality will be implemented soon!");
   };
 
+  // Max button functions
+  const setMaxLarry = () => {
+    setBuyLarryAmount(larryBalance);
+  };
+
+  const setMaxYkp = () => {
+    setSellYkpAmount(ykpBalance);
+  };
+
   return (
     <div className={`${geistSans.className} ${inter.variable} min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100`}>
       {/* Navigation */}
@@ -358,6 +421,10 @@ export default function TradePage() {
                 </button>
               ) : (
                 <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-700">
+                    <div className="font-semibold">LARRY: {larryBalance}</div>
+                    <div className="font-semibold">YKP: {ykpBalance}</div>
+                  </div>
                   <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                     {account.slice(0, 6)}...{account.slice(-4)}
                   </div>
@@ -465,17 +532,28 @@ export default function TradePage() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Buy YKP Tokens</h2>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        LARRY Amount to Spend
-                      </label>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          LARRY Amount to Spend
+                        </label>
+                        <div className="text-sm text-gray-600">
+                          Balance: {larryBalance} LARRY
+                        </div>
+                      </div>
                       <div className="relative">
                         <input
                           type="number"
                           value={buyLarryAmount}
                           onChange={(e) => setBuyLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
+                        <button
+                          onClick={setMaxLarry}
+                          className="absolute right-16 top-3 bg-yellow-500 text-white px-2 py-1 rounded text-sm font-medium hover:bg-yellow-600 transition-colors"
+                        >
+                          MAX
+                        </button>
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
                     </div>
@@ -490,7 +568,7 @@ export default function TradePage() {
                           value={buyYkpAmount}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                       </div>
@@ -541,17 +619,28 @@ export default function TradePage() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Sell YKP Tokens</h2>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        YKP Amount to Sell
-                      </label>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          YKP Amount to Sell
+                        </label>
+                        <div className="text-sm text-gray-600">
+                          Balance: {ykpBalance} YKP
+                        </div>
+                      </div>
                       <div className="relative">
                         <input
                           type="number"
                           value={sellYkpAmount}
                           onChange={(e) => setSellYkpAmount(e.target.value)}
                           placeholder="Enter YKP amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg"
+                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
+                        <button
+                          onClick={setMaxYkp}
+                          className="absolute right-16 top-3 bg-yellow-500 text-white px-2 py-1 rounded text-sm font-medium hover:bg-yellow-600 transition-colors"
+                        >
+                          MAX
+                        </button>
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                       </div>
                     </div>
@@ -566,7 +655,7 @@ export default function TradePage() {
                           value={sellLarryAmount}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
