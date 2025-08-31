@@ -147,12 +147,12 @@ export default function TradePage() {
 
   // Leverage states
   const [leverageLarryAmount, setLeverageLarryAmount] = useState("");
-  const [leverageDays, setLeverageDays] = useState("30");
+  const [leverageDays, setLeverageDays] = useState("365");
   const [leverageFee, setLeverageFee] = useState("");
 
   // Borrow states
   const [borrowLarryAmount, setBorrowLarryAmount] = useState("");
-  const [borrowDays, setBorrowDays] = useState("30");
+  const [borrowDays, setBorrowDays] = useState("365");
   const [borrowCollateral, setBorrowCollateral] = useState("");
 
   // Borrow More states
@@ -237,6 +237,15 @@ export default function TradePage() {
       setLeverageFee("");
     }
   }, [leverageLarryAmount, leverageDays, leverageFeeRate]);
+
+  // Default leverage amount to full LARRY balance when connected
+  useEffect(() => {
+    if (isConnected && parseFloat(larryBalance) > 0) {
+      const lb = parseFloat(larryBalance);
+      const floored = (Math.floor(lb * 1e4) / 1e4).toFixed(4);
+      setLeverageLarryAmount(floored);
+    }
+  }, [isConnected, larryBalance]);
 
   // Calculate borrow collateral using real contract data
   useEffect(() => {
@@ -1804,19 +1813,24 @@ export default function TradePage() {
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Loan Duration (Days)
+                        Loan Duration (Days): {leverageDays}
                       </label>
-                      <select
+                      <input
+                        type="range"
+                        min="1"
+                        max="365"
+                        step="1"
                         value={leverageDays}
                         onChange={(e) => setLeverageDays(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
-                      >
-                        <option value="7">7 Days</option>
-                        <option value="14">14 Days</option>
-                        <option value="30">30 Days</option>
-                        <option value="60">60 Days</option>
-                        <option value="90">90 Days</option>
-                      </select>
+                        className="w-full accent-purple-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>1</span>
+                        <span>90</span>
+                        <span>180</span>
+                        <span>270</span>
+                        <span>365</span>
+                      </div>
                     </div>
 
                     <div>
@@ -1930,19 +1944,24 @@ export default function TradePage() {
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Loan Duration (Days)
+                        Loan Duration (Days): {borrowDays}
                       </label>
-                      <select
+                      <input
+                        type="range"
+                        min="1"
+                        max="365"
+                        step="1"
                         value={borrowDays}
                         onChange={(e) => setBorrowDays(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
-                      >
-                        <option value="7">7 Days</option>
-                        <option value="14">14 Days</option>
-                        <option value="30">30 Days</option>
-                        <option value="60">60 Days</option>
-                        <option value="90">90 Days</option>
-                      </select>
+                        className="w-full accent-yellow-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>1</span>
+                        <span>90</span>
+                        <span>180</span>
+                        <span>270</span>
+                        <span>365</span>
+                      </div>
                     </div>
 
                     <div>
