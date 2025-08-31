@@ -24,13 +24,8 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {/* YAKA PIE Logo */}
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-white font-black text-lg">Y</span>
-                </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-300 rounded-full flex items-center justify-center animate-pulse">
-                  <span className="text-yellow-800 font-bold text-xs">🔥</span>
-                </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🥧</span>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">YAKA PIE</h1>
@@ -69,25 +64,14 @@ export default function Home() {
                 {/* Main logo container */}
                 <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-yellow-200">
                   <div className="flex items-center justify-center space-x-4 mb-4">
-                    {/* YAKA PIE Text */}
+                    {/* Main Pie Logo */}
                     <div className="text-center">
-                      <h1 className="text-6xl sm:text-8xl font-black bg-gradient-to-r from-yellow-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none">
-                        YAKA
-                      </h1>
-                      <h1 className="text-6xl sm:text-8xl font-black bg-gradient-to-r from-yellow-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none -mt-4">
-                        PIE
-                      </h1>
-                    </div>
-
-                    {/* Pie Icon */}
-                    <div className="relative">
-                      <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-xl animate-pulse">
-                        <span className="text-4xl">🥧</span>
+                      <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse mx-auto mb-4">
+                        <span className="text-6xl sm:text-7xl">🥧</span>
                       </div>
-                      {/* Hot fire effect */}
-                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center animate-bounce">
-                        <span className="text-white text-sm">🔥</span>
-                      </div>
+                      <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-yellow-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none">
+                        YAKA PIE
+                      </h1>
                     </div>
                   </div>
 
@@ -780,7 +764,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-4 mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white font-black text-2xl">Y</span>
+                <span className="text-4xl">🥧</span>
               </div>
               <div>
                 <h3 className="text-3xl font-black text-gray-900 mb-2">YAKA PIE (YKP)</h3>
