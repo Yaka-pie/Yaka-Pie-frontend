@@ -1375,7 +1375,7 @@ export default function TradePage() {
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white font-black text-lg">Y</span>
+                <span className="text-2xl">🥧</span>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">YAKA PIE</h1>
@@ -1417,11 +1417,18 @@ export default function TradePage() {
           <div className="inline-block relative mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl blur-2xl opacity-20 scale-110"></div>
             <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-yellow-200">
-              <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 bg-clip-text text-transparent mb-4">
-                YAKA PIE Trading
-              </h1>
-              <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-lg inline-block">
-                DeFi Protocol
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-3xl">🥧</span>
+                </div>
+                <div className="text-center">
+                  <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
+                    YAKA PIE Trading
+                  </h1>
+                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-lg inline-block mt-2">
+                    DeFi Protocol
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2232,7 +2239,7 @@ export default function TradePage() {
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
             <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-black">Y</span>
+              <span className="text-lg">🥧</span>
             </div>
             <span className="text-gray-900 font-bold">YAKA PIE</span>
           </div>
