@@ -871,7 +871,8 @@ export default function TradePage() {
     } else if (functionName === 'borrow') {
       const larry = params[0] as string; // uint256
       const numberOfDays = params[1] as string; // uint256
-      const result = '0xc5ebeaec' + padNumber(larry) + padNumber(numberOfDays);
+      const selector = getSelectorForSignature('borrow(uint256,uint256)');
+      const result = selector + padNumber(larry) + padNumber(numberOfDays);
       console.log(`Encoding borrow function:`);
       console.log(`  LARRY: ${larry}`);
       console.log(`  Number of Days: ${numberOfDays}`);
