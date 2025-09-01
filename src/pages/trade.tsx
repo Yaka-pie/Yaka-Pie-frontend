@@ -173,6 +173,16 @@ export default function TradePage() {
   const [sellFee, setSellFee] = useState("975");
   const [leverageFeeRate, setLeverageFeeRate] = useState("10");
   const [userLoan, setUserLoan] = useState({ collateral: "0", borrowed: "0", endDate: "0", numberOfDays: "0" });
+  
+  // OpenOcean price data
+  const [openOceanPrices, setOpenOceanPrices] = useState({
+    larryPrice: 0,
+    ykpPrice: 0,
+    lastUpdated: 0,
+    larryToYkpRate: 0,
+    ykpToLarryRate: 0,
+    error: null as string | null
+  });
 
   // Calculate buy amounts using real contract data
   useEffect(() => {
@@ -855,6 +865,87 @@ export default function TradePage() {
     return address.slice(2).toLowerCase().padStart(64, '0');
   };
 
+  // Fetch OpenOcean prices using v4 API
+  const fetchOpenOceanPrices = async () => {
+    try {
+      const LARRY_ADDRESS = "0x888d81e3ea5E8362B5f69188CBCF34Fa8da4b888"; // OpenOcean LARRY token
+      const YKP_ADDRESS = "0x008c8c362cd46a9e41957cc11ee812647233dff1"; // OpenOcean YKP token
+      const chain = "1329"; // SEI chain
+      
+      console.log("🔍 Fetching OpenOcean prices for:", { LARRY_ADDRESS, YKP_ADDRESS, chain });
+      
+      // Fetch LARRY/YKP price directly (LARRY -> YKP)
+      const larryToYkpUrl = `https://open-api.openocean.finance/v4/${chain}/quote?inTokenAddress=${LARRY_ADDRESS}&outTokenAddress=${YKP_ADDRESS}&amountDecimals=1000000000000000000&gasPriceDecimals=1000000000`;
+      console.log("📡 LARRY->YKP URL:", larryToYkpUrl);
+      
+      const larryToYkpResponse = await fetch(larryToYkpUrl);
+      
+      // Fetch YKP/LARRY price (YKP -> LARRY)  
+      const ykpToLarryUrl = `https://open-api.openocean.finance/v4/${chain}/quote?inTokenAddress=${YKP_ADDRESS}&outTokenAddress=${LARRY_ADDRESS}&amountDecimals=1000000000000000000&gasPriceDecimals=1000000000`;
+      console.log("📡 YKP->LARRY URL:", ykpToLarryUrl);
+      
+      const ykpToLarryResponse = await fetch(ykpToLarryUrl);
+
+      console.log("📥 Response status:", { 
+        larryToYkp: larryToYkpResponse.status, 
+        ykpToLarry: ykpToLarryResponse.status 
+      });
+
+      if (larryToYkpResponse.ok) {
+        const larryToYkpData = await larryToYkpResponse.json();
+        console.log("📊 LARRY->YKP Response:", larryToYkpData);
+      }
+      
+      if (ykpToLarryResponse.ok) {
+        const ykpToLarryData = await ykpToLarryResponse.json();
+        console.log("📊 YKP->LARRY Response:", ykpToLarryData);
+        
+        // If both requests succeeded, process the data
+        if (larryToYkpResponse.ok) {
+          const larryToYkpData = await fetch(larryToYkpUrl).then(r => r.json());
+          
+          if (larryToYkpData.code === 200 && ykpToLarryData.code === 200 && larryToYkpData.data && ykpToLarryData.data) {
+            // Calculate exchange rates
+            const larryToYkpRate = parseFloat(larryToYkpData.data.outAmount) / 1e18;
+            const ykpToLarryRate = parseFloat(ykpToLarryData.data.outAmount) / 1e18;
+            
+            setOpenOceanPrices({
+              larryPrice: 1, // Base price
+              ykpPrice: larryToYkpRate, // YKP price in LARRY terms
+              lastUpdated: Date.now(),
+              larryToYkpRate,
+              ykpToLarryRate,
+              error: null
+            });
+            
+            console.log("✅ OpenOcean Rates Updated:", { 
+              "1 LARRY =": `${larryToYkpRate.toFixed(6)} YKP`,
+              "1 YKP =": `${ykpToLarryRate.toFixed(6)} LARRY`
+            });
+          } else {
+            console.warn("⚠️ OpenOcean API returned error codes or missing data:", {
+              larryToYkp: larryToYkpData,
+              ykpToLarry: ykpToLarryData
+            });
+            // Set error state
+            setOpenOceanPrices(prev => ({
+              ...prev,
+              lastUpdated: Date.now(),
+              error: "No liquidity found for LARRY/YKP pair on OpenOcean"
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch OpenOcean prices:", error);
+      setOpenOceanPrices(prev => ({
+        ...prev,
+        lastUpdated: Date.now(),
+        error: error instanceof Error ? error.message : "Unknown error"
+      }));
+    }
+  };
+
   // Helper function to pad number (handles hex strings)
   const padNumber = (num: string | number) => {
     if (typeof num === 'string' && num.startsWith('0x')) {
@@ -1395,6 +1486,34 @@ export default function TradePage() {
   };
 
   // Flash close removed
+  
+  // Calculate DEX prices
+  const getDexPrices = () => {
+    if (!contractBacking || !totalSupply || parseFloat(contractBacking) === 0 || parseFloat(totalSupply) === 0) {
+      return { larryPrice: 0, ykpPrice: 0 };
+    }
+    
+    const backing = parseFloat(contractBacking);
+    const supply = parseFloat(totalSupply);
+    
+    // YKP price in LARRY terms
+    const ykpInLarry = backing / supply;
+    
+    // For comparison, assume LARRY base price (you can adjust this)
+    const larryBasePrice = 1; // or fetch from another source
+    
+    return {
+      larryPrice: larryBasePrice,
+      ykpPrice: ykpInLarry * larryBasePrice
+    };
+  };
+
+  // Fetch OpenOcean prices on component mount and every 30 seconds
+  useEffect(() => {
+    fetchOpenOceanPrices();
+    const interval = setInterval(fetchOpenOceanPrices, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Max button functions
   const setMaxLarry = () => {
@@ -1528,6 +1647,166 @@ export default function TradePage() {
             </div>
             {/* Helper text removed per request */}
           </div>
+        </div>
+
+        {/* Price Comparison Panel */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900">💹 Price Comparison: Our DEX vs OpenOcean</h3>
+            <div className="text-sm text-gray-500">
+              Updated {openOceanPrices.lastUpdated ? new Date(openOceanPrices.lastUpdated).toLocaleTimeString() : 'Never'}
+            </div>
+          </div>
+
+          {/* Price Comparison Table */}
+          <div className="bg-gray-50 rounded-xl p-4 mb-6">
+            <div className="grid grid-cols-4 gap-4 text-sm font-semibold text-gray-700 mb-3">
+              <div>Trading Pair</div>
+              <div className="text-center">Our DEX Rate</div>
+              <div className="text-center">OpenOcean Rate</div>
+              <div className="text-center">Difference</div>
+            </div>
+            <div className="space-y-3">
+              {/* LARRY → YKP */}
+              <div className="grid grid-cols-4 gap-4 items-center py-2 px-3 bg-white rounded-lg">
+                <div className="font-bold text-gray-800">💰 LARRY → YKP</div>
+                <div className="text-center font-mono">
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                      ? (parseFloat(totalSupply) / parseFloat(contractBacking)).toFixed(6)
+                      : '0.000000'} YKP
+                  </span>
+                </div>
+                <div className="text-center font-mono">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {openOceanPrices.larryToYkpRate.toFixed(6)} YKP
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`font-bold px-2 py-1 rounded ${
+                    (contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                      ? parseFloat(totalSupply) / parseFloat(contractBacking)
+                      : 0) > openOceanPrices.larryToYkpRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {openOceanPrices.larryToYkpRate > 0 && contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                      ? (((parseFloat(totalSupply) / parseFloat(contractBacking)) - openOceanPrices.larryToYkpRate) / openOceanPrices.larryToYkpRate * 100).toFixed(2) 
+                      : '0.00'}%
+                  </span>
+                </div>
+              </div>
+              
+              {/* YKP → LARRY */}
+              <div className="grid grid-cols-4 gap-4 items-center py-2 px-3 bg-white rounded-lg">
+                <div className="font-bold text-gray-800">🥧 YKP → LARRY</div>
+                <div className="text-center font-mono">
+                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                    {contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                      ? (parseFloat(contractBacking) / parseFloat(totalSupply)).toFixed(6)
+                      : '0.000000'} LARRY
+                  </span>
+                </div>
+                <div className="text-center font-mono">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {openOceanPrices.ykpToLarryRate.toFixed(6)} LARRY
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className={`font-bold px-2 py-1 rounded ${
+                    (contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                      ? parseFloat(contractBacking) / parseFloat(totalSupply)
+                      : 0) > openOceanPrices.ykpToLarryRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {openOceanPrices.ykpToLarryRate > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                      ? (((parseFloat(contractBacking) / parseFloat(totalSupply)) - openOceanPrices.ykpToLarryRate) / openOceanPrices.ykpToLarryRate * 100).toFixed(2) 
+                      : '0.00'}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {openOceanPrices.error && (
+            <div className="mb-4 p-3 bg-orange-100 border border-orange-300 rounded-lg text-sm">
+              <div className="font-semibold text-orange-800 mb-1">⚠️ OpenOcean Data Unavailable</div>
+              <div className="text-orange-700">{openOceanPrices.error}</div>
+              <div className="text-orange-600 mt-1">This may indicate no liquidity for LARRY/YKP pair on external DEXs, or SEI chain not supported.</div>
+            </div>
+          )}
+          {/* Real Arbitrage Analysis */}
+          {openOceanPrices.larryToYkpRate > 0 && openOceanPrices.ykpToLarryRate > 0 && contractBacking && totalSupply && (
+            <>
+              {(() => {
+                const ourLarryToYkpRate = parseFloat(totalSupply) / parseFloat(contractBacking);
+                const ourYkpToLarryRate = parseFloat(contractBacking) / parseFloat(totalSupply);
+                const openOceanLarryToYkpRate = openOceanPrices.larryToYkpRate;
+                const openOceanYkpToLarryRate = openOceanPrices.ykpToLarryRate;
+
+                // Test REAL arbitrage cycles
+                // Cycle 1: Start with 1 LARRY → YKP (best platform) → LARRY (best platform)
+                const cycle1_ykp = Math.max(ourLarryToYkpRate, openOceanLarryToYkpRate); // Best LARRY→YKP rate
+                const cycle1_larry = cycle1_ykp * Math.max(ourYkpToLarryRate, openOceanYkpToLarryRate); // Best YKP→LARRY rate
+                const cycle1_profit = ((cycle1_larry - 1) / 1) * 100; // Profit from 1 LARRY
+
+                // Cycle 2: Start with 1 YKP → LARRY (best platform) → YKP (best platform)
+                const cycle2_larry = Math.max(ourYkpToLarryRate, openOceanYkpToLarryRate); // Best YKP→LARRY rate
+                const cycle2_ykp = cycle2_larry * Math.max(ourLarryToYkpRate, openOceanLarryToYkpRate); // Best LARRY→YKP rate
+                const cycle2_profit = ((cycle2_ykp - 1) / 1) * 100; // Profit from 1 YKP
+
+                const hasRealArbitrage = cycle1_profit > 1 || cycle2_profit > 1; // 1% threshold for real profit
+
+                if (hasRealArbitrage) {
+                  return (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-green-100 to-emerald-100 border-2 border-green-300 rounded-xl">
+                      <div className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                        💰 LARRY ARBITRAGE OPPORTUNITY 💰
+                      </div>
+                      
+                      {/* Always show LARRY-based arbitrage */}
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="font-semibold text-gray-800 mb-3">
+                          🔄 Start with LARRY → End with More LARRY
+                        </div>
+                        <div className="text-sm space-y-3">
+                          <div className="font-medium text-blue-800 bg-blue-50 px-3 py-2 rounded">
+                            <div className="font-bold mb-1">Complete Arbitrage Cycle:</div>
+                            <div>1. Start: 1 LARRY</div>
+                            <div>2. Convert: 1 LARRY → {cycle1_ykp.toFixed(6)} YKP ({ourLarryToYkpRate > openOceanLarryToYkpRate ? 'on YOUR DEX' : 'on OpenOcean'}) ✅</div>
+                            <div>3. Convert: {cycle1_ykp.toFixed(6)} YKP → {cycle1_larry.toFixed(6)} LARRY ({ourYkpToLarryRate > openOceanYkpToLarryRate ? 'on YOUR DEX' : 'on OpenOcean'}) ✅</div>
+                            <div className="font-bold text-green-700">4. End Result: {cycle1_larry.toFixed(6)} LARRY</div>
+                          </div>
+                          
+                          <div className="bg-green-50 border border-green-200 rounded p-3">
+                            <div className="font-bold text-green-700 text-lg">
+                              💰 LARRY Profit: {cycle1_profit.toFixed(2)}% per cycle
+                            </div>
+                            <div className="text-green-600 mt-1">
+                              For every 100 LARRY you start with → You end with {(100 * cycle1_larry).toFixed(2)} LARRY
+                            </div>
+                            <div className="text-green-600 font-medium">
+                              = {((100 * cycle1_larry) - 100).toFixed(2)} LARRY profit 🎯
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        ⚠️ Arbitrage requires gas fees for each transaction and timing. Actual profit may be lower after costs.
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm">
+                      <div className="font-semibold text-gray-700 mb-1">📊 No Arbitrage Opportunities</div>
+                      <div className="text-gray-600">
+                        Current price differences don&apos;t create profitable arbitrage cycles. Individual conversions may have better rates on different platforms.
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
+            </>
+          )}
         </div>
 
         {/* Trading Interface */}
