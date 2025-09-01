@@ -1439,10 +1439,29 @@ export default function TradePage() {
       const decimals = 18;
       const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
       const amountHex = '0x' + amountWei.toString(16);
+      
+      // Step 1: Approve LARRY tokens for the YKP contract
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, amountHex]);
+      console.log("Step 1: Approving LARRY tokens for repayment...");
+      const approveTxHash = await executeTransaction(LARRY_TOKEN_ADDRESS, approveData);
+      
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("LARRY tokens approved! Hash:", approveTxHash);
+      
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Call repay function on YKP contract
       const data = encodeFunctionCall('repay', [amountHex]);
+      console.log("Step 2: Repaying loan...");
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
       if (txHash) {
         setTxHash(txHash);
+        alert(`Repay transaction submitted! Transaction hash: ${txHash}`);
         setTimeout(() => {
           fetchBalances(account);
           fetchContractState();
@@ -1467,7 +1486,34 @@ export default function TradePage() {
     setIsLoading(true);
     setTxHash("");
     try {
+      // For closePosition, we need to approve LARRY equal to the borrowed amount
+      const borrowedAmount = parseFloat(userLoan.borrowed || '0');
+      if (borrowedAmount <= 0) {
+        throw new Error("No loan to close");
+      }
+      
+      const decimals = 18;
+      const borrowedWei = BigInt(Math.floor(borrowedAmount * Math.pow(10, decimals)));
+      const borrowedHex = '0x' + borrowedWei.toString(16);
+      
+      // Step 1: Approve LARRY tokens for the YKP contract (borrowed amount)
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, borrowedHex]);
+      console.log("Step 1: Approving LARRY tokens for position closure...");
+      const approveTxHash = await executeTransaction(LARRY_TOKEN_ADDRESS, approveData);
+      
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("LARRY tokens approved! Hash:", approveTxHash);
+      
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Call closePosition function on YKP contract
       const data = encodeFunctionCall('closePosition', []);
+      console.log("Step 2: Closing position...");
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
       if (txHash) {
         setTxHash(txHash);
@@ -1491,7 +1537,35 @@ export default function TradePage() {
     setIsLoading(true);
     setTxHash("");
     try {
+      // Flash close typically doesn't need approval since it uses flash loans,
+      // but let's add a safety check and approval just in case
+      const borrowedAmount = parseFloat(userLoan.borrowed || '0');
+      if (borrowedAmount <= 0) {
+        throw new Error("No loan to close");
+      }
+      
+      const decimals = 18;
+      const borrowedWei = BigInt(Math.floor(borrowedAmount * Math.pow(10, decimals)));
+      const borrowedHex = '0x' + borrowedWei.toString(16);
+      
+      // Step 1: Approve LARRY tokens for the YKP contract (as backup)
+      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, borrowedHex]);
+      console.log("Step 1: Approving LARRY tokens for flash close...");
+      const approveTxHash = await executeTransaction(LARRY_TOKEN_ADDRESS, approveData);
+      
+      if (!approveTxHash) {
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("LARRY tokens approved! Hash:", approveTxHash);
+      
+      // Wait a moment for approval transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Call flashClosePosition function on YKP contract
       const data = encodeFunctionCall('flashClosePosition', []);
+      console.log("Step 2: Flash closing position...");
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
       if (txHash) {
         setTxHash(txHash);
@@ -2396,18 +2470,29 @@ export default function TradePage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Remove Collateral</h3>
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              YKP Amount to Remove
-                            </label>
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
+                              <label className="block text-sm font-semibold text-gray-700">
+                                YKP Amount to Remove
+                              </label>
+                              <div className="text-xs sm:text-sm text-gray-600 truncate">
+                                Available: {userLoan.collateral} YKP
+                              </div>
+                            </div>
                             <div className="relative">
                               <input
                                 type="number"
                                 value={removeCollateralAmount}
                                 onChange={(e) => setRemoveCollateralAmount(e.target.value)}
                                 placeholder="Enter YKP amount"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                                className="w-full px-4 py-3 pr-16 sm:pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                               />
-                              <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
+                              <button
+                                onClick={() => setRemoveCollateralAmount(userLoan.collateral)}
+                                className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                              >
+                                MAX
+                              </button>
+                              <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">YKP</div>
                             </div>
                           </div>
                           <button
@@ -2424,17 +2509,35 @@ export default function TradePage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Repay Loan</h3>
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                              LARRY Amount to Repay
-                            </label>
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
+                              <label className="block text-sm font-semibold text-gray-700">
+                                LARRY Amount to Repay
+                              </label>
+                              <div className="text-xs sm:text-sm text-gray-600 truncate">
+                                Owed: {userLoan.borrowed} LARRY | Balance: {parseFloat(larryBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} LARRY
+                              </div>
+                            </div>
                             <div className="relative">
                               <input
                                 type="number"
                                 value={repayAmount}
                                 onChange={(e) => setRepayAmount(e.target.value)}
                                 placeholder="Enter LARRY amount"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                                className="w-full px-4 py-3 pr-16 sm:pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                               />
+                              <button
+                                onClick={() => {
+                                  // Set to the minimum of what's owed vs what user has in balance
+                                  const maxRepay = Math.min(
+                                    parseFloat(userLoan.borrowed || '0'),
+                                    parseFloat(larryBalance || '0')
+                                  ).toString();
+                                  setRepayAmount(maxRepay);
+                                }}
+                                className="absolute right-14 sm:right-16 top-3 bg-blue-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-blue-600 transition-colors"
+                              >
+                                MAX
+                              </button>
                               <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                             </div>
                           </div>
