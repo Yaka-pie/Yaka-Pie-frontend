@@ -37,6 +37,14 @@ export default function Home() {
               <a href="#features" className="text-gray-700 hover:text-yellow-600 transition-colors">Features</a>
               <a href="#how-it-works" className="text-gray-700 hover:text-yellow-600 transition-colors">How It Works</a>
               <a href="#contract" className="text-gray-700 hover:text-yellow-600 transition-colors">Smart Contract</a>
+              <a 
+                href="https://discord.gg/8HSJQUCujU" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1 text-sm font-medium"
+              >
+                💬 Discord
+              </a>
               <Link href="/trade" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105">
                 Trade YKP
               </Link>
@@ -776,6 +784,20 @@ export default function Home() {
               The world&apos;s first meme coin that can never go down in price, fully backed by LARRY tokens,
               with advanced leverage and borrowing features. Built on SEI Network with mathematical certainty.
             </p>
+
+            {/* Discord Community Button */}
+            <div className="mb-8">
+              <a 
+                href="https://discord.gg/8HSJQUCujU" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl"
+              >
+                <span className="text-2xl">💬</span>
+                Join Discord Community
+                <span className="text-sm bg-indigo-800 px-2 py-1 rounded-full">Live Chat</span>
+              </a>
+            </div>
 
             {/* Footer Links */}
             <div className="flex flex-wrap justify-center gap-8 text-sm font-medium">

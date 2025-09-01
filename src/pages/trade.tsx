@@ -1785,6 +1785,14 @@ export default function TradePage() {
 
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/" className="text-gray-700 hover:text-yellow-600 transition-colors hidden sm:block">Home</Link>
+              <a 
+                href="https://discord.gg/8HSJQUCujU" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-indigo-600 hover:text-indigo-700 transition-colors hidden sm:flex items-center gap-1 text-sm font-medium"
+              >
+                💬 Discord
+              </a>
               {!isConnected ? (
                 <button
                   onClick={connectWallet}
@@ -3015,6 +3023,20 @@ export default function TradePage() {
             </div>
             <span className="text-gray-900 font-bold">YAKA PIE</span>
           </div>
+          
+          {/* Discord Link */}
+          <div className="mb-4">
+            <a 
+              href="https://discord.gg/8HSJQUCujU" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-lg"
+            >
+              <span className="text-base">💬</span>
+              Join Discord Community
+            </a>
+          </div>
+          
           <p className="text-gray-600 text-sm">Built on SEI Network • Smart Contract Protected • Never Goes Down</p>
         </div>
       </footer>
