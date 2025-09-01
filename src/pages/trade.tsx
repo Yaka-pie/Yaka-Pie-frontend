@@ -1408,13 +1408,53 @@ export default function TradePage() {
     try {
       const amountFloat = parseFloat(removeCollateralAmount);
       if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid amount");
+      
+      // Validation checks before transaction
+      const currentCollateral = parseFloat(userLoan.collateral || '0');
+      const borrowed = parseFloat(userLoan.borrowed || '0');
+      
+      if (amountFloat > currentCollateral) {
+        throw new Error(`Cannot remove ${amountFloat} YKP. You only have ${currentCollateral} YKP as collateral.`);
+      }
+      
+      // Check if loan is expired (basic client-side check)
+      const currentTime = Date.now() / 1000;
+      const loanEndTime = parseFloat(userLoan.endDate || '0');
+      if (loanEndTime > 0 && currentTime > loanEndTime) {
+        throw new Error("Your loan has expired and may have been liquidated. Cannot remove collateral.");
+      }
+      
+      // Estimate if remaining collateral will maintain 99% collateralization
+      const remainingCollateral = currentCollateral - amountFloat;
+      if (contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0) {
+        const remainingCollateralInLarry = (remainingCollateral * parseFloat(contractBacking)) / parseFloat(totalSupply);
+        const requiredCollateral = borrowed / 0.99; // Need 99% collateralization
+        
+        if (remainingCollateralInLarry < requiredCollateral) {
+          const maxRemovable = currentCollateral - (requiredCollateral * parseFloat(totalSupply)) / parseFloat(contractBacking);
+          throw new Error(
+            `Removing ${amountFloat} YKP would violate the 99% collateralization requirement. ` +
+            `Maximum you can remove is approximately ${Math.max(0, maxRemovable).toFixed(4)} YKP.`
+          );
+        }
+      }
+      
       const decimals = 18;
       const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
       const amountHex = '0x' + amountWei.toString(16);
       const data = encodeFunctionCall('removeCollateral', [amountHex]);
+      
+      console.log("Removing collateral:", {
+        amount: amountFloat,
+        currentCollateral,
+        borrowed,
+        remainingAfterRemoval: currentCollateral - amountFloat
+      });
+      
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
       if (txHash) {
         setTxHash(txHash);
+        alert(`Remove Collateral transaction submitted! Transaction hash: ${txHash}`);
         setTimeout(() => {
           fetchBalances(account);
           fetchContractState();
@@ -2487,14 +2527,54 @@ export default function TradePage() {
                                 className="w-full px-4 py-3 pr-16 sm:pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                               />
                               <button
-                                onClick={() => setRemoveCollateralAmount(userLoan.collateral)}
+                                onClick={() => {
+                                  // Calculate safe maximum amount that maintains 99% collateralization
+                                  const currentCollateral = parseFloat(userLoan.collateral || '0');
+                                  const borrowed = parseFloat(userLoan.borrowed || '0');
+                                  
+                                  if (contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0 && borrowed > 0) {
+                                    const requiredCollateralInLarry = borrowed / 0.99; // Need 99% collateralization
+                                    const requiredCollateralInYkp = (requiredCollateralInLarry * parseFloat(totalSupply)) / parseFloat(contractBacking);
+                                    const safeMaxRemovable = Math.max(0, currentCollateral - requiredCollateralInYkp - 0.001); // Small buffer
+                                    setRemoveCollateralAmount(safeMaxRemovable.toFixed(4));
+                                  } else {
+                                    // Fallback: leave small buffer
+                                    const safeAmount = Math.max(0, currentCollateral * 0.1); // Only allow 10% as safe fallback
+                                    setRemoveCollateralAmount(safeAmount.toFixed(4));
+                                  }
+                                }}
                                 className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
                               >
-                                MAX
+                                SAFE
                               </button>
                               <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">YKP</div>
                             </div>
                           </div>
+                          
+                          {/* Collateralization Info */}
+                          {userLoan.collateral && userLoan.borrowed && parseFloat(userLoan.borrowed) > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0 && (
+                            <div className="bg-blue-50 rounded-lg p-3 text-xs sm:text-sm">
+                              <div className="font-semibold text-blue-800 mb-2">💡 Collateralization Status</div>
+                              {(() => {
+                                const currentCollateral = parseFloat(userLoan.collateral);
+                                const borrowed = parseFloat(userLoan.borrowed);
+                                const currentCollateralInLarry = (currentCollateral * parseFloat(contractBacking)) / parseFloat(totalSupply);
+                                const currentRatio = (currentCollateralInLarry / borrowed) * 100;
+                                const requiredCollateralInLarry = borrowed / 0.99;
+                                const requiredCollateralInYkp = (requiredCollateralInLarry * parseFloat(totalSupply)) / parseFloat(contractBacking);
+                                const maxSafeRemovable = Math.max(0, currentCollateral - requiredCollateralInYkp);
+                                
+                                return (
+                                  <div className="space-y-1 text-blue-700">
+                                    <div>Current Ratio: <span className={`font-semibold ${currentRatio > 110 ? 'text-green-600' : currentRatio > 100 ? 'text-yellow-600' : 'text-red-600'}`}>{currentRatio.toFixed(1)}%</span></div>
+                                    <div>Required: <span className="font-semibold">99.0%</span> minimum</div>
+                                    <div>Safe to Remove: <span className="font-semibold text-green-600">{maxSafeRemovable.toFixed(4)} YKP</span></div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          
                           <button
                             onClick={removeCollateral}
                             disabled={!removeCollateralAmount || isLoading}
