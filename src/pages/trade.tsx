@@ -1476,9 +1476,25 @@ export default function TradePage() {
     try {
       const amountFloat = parseFloat(repayAmount);
       if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid amount");
+      
+      // IMPORTANT: Contract requires repay amount < borrowed amount (not equal!)
+      const borrowedAmount = parseFloat(userLoan.borrowed || '0');
+      
+      // Check if trying to repay full amount (which will fail)
+      if (amountFloat >= borrowedAmount) {
+        throw new Error(
+          `Cannot repay full loan amount (${borrowedAmount} LARRY). ` +
+          `Contract requires repay amount to be LESS than borrowed. ` +
+          `Use 'Close Position' or 'Flash Close' to fully close the loan.`
+        );
+      }
+      
+      // Use standard conversion for partial repayments
       const decimals = 18;
       const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
       const amountHex = '0x' + amountWei.toString(16);
+      
+      console.log("Partial repayment:", amountFloat, "-> Wei:", amountWei.toString());
       
       // Step 1: Approve LARRY tokens for the YKP contract
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, amountHex]);
@@ -1526,15 +1542,21 @@ export default function TradePage() {
     setIsLoading(true);
     setTxHash("");
     try {
-      // For closePosition, we need to approve LARRY equal to the borrowed amount
+      // For closePosition, we need to approve LARRY equal to the exact borrowed amount
       const borrowedAmount = parseFloat(userLoan.borrowed || '0');
       if (borrowedAmount <= 0) {
         throw new Error("No loan to close");
       }
       
-      const decimals = 18;
-      const borrowedWei = BigInt(Math.floor(borrowedAmount * Math.pow(10, decimals)));
+      // Use exact borrowed amount to avoid precision issues
+      const exactBorrowedStr = userLoan.borrowed || '0';
+      const parts = exactBorrowedStr.split('.');
+      const integerPart = parts[0] || '0';
+      const decimalPart = (parts[1] || '').padEnd(18, '0').slice(0, 18);
+      const borrowedWei = BigInt(integerPart) * BigInt(10 ** 18) + BigInt(decimalPart);
       const borrowedHex = '0x' + borrowedWei.toString(16);
+      
+      console.log("Close position - exact borrowed amount:", exactBorrowedStr, "-> Wei:", borrowedWei.toString());
       
       // Step 1: Approve LARRY tokens for the YKP contract (borrowed amount)
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, borrowedHex]);
@@ -1584,9 +1606,15 @@ export default function TradePage() {
         throw new Error("No loan to close");
       }
       
-      const decimals = 18;
-      const borrowedWei = BigInt(Math.floor(borrowedAmount * Math.pow(10, decimals)));
+      // Use exact borrowed amount to avoid precision issues
+      const exactBorrowedStr = userLoan.borrowed || '0';
+      const parts = exactBorrowedStr.split('.');
+      const integerPart = parts[0] || '0';
+      const decimalPart = (parts[1] || '').padEnd(18, '0').slice(0, 18);
+      const borrowedWei = BigInt(integerPart) * BigInt(10 ** 18) + BigInt(decimalPart);
       const borrowedHex = '0x' + borrowedWei.toString(16);
+      
+      console.log("Flash close - exact borrowed amount:", exactBorrowedStr, "-> Wei:", borrowedWei.toString());
       
       // Step 1: Approve LARRY tokens for the YKP contract (as backup)
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, borrowedHex]);
@@ -2591,36 +2619,70 @@ export default function TradePage() {
                           <div>
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
                               <label className="block text-sm font-semibold text-gray-700">
-                                LARRY Amount to Repay
+                                LARRY Amount to Repay <span className="text-red-600">(Partial Only)</span>
                               </label>
                               <div className="text-xs sm:text-sm text-gray-600 truncate">
-                                Owed: {userLoan.borrowed} LARRY | Balance: {parseFloat(larryBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} LARRY
+                                Owed: {userLoan.borrowed} LARRY | Max Repayable: ~{(parseFloat(userLoan.borrowed || '0') * 0.9999).toFixed(6)} LARRY
                               </div>
                             </div>
                             <div className="relative">
                               <input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 value={repayAmount}
-                                onChange={(e) => setRepayAmount(e.target.value)}
-                                placeholder="Enter LARRY amount"
-                                className="w-full px-4 py-3 pr-16 sm:pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow decimal numbers with up to 18 decimal places
+                                  if (/^\d*\.?\d{0,18}$/.test(value) || value === '') {
+                                    setRepayAmount(value);
+                                  }
+                                }}
+                                placeholder="Enter exact LARRY amount"
+                                className="w-full px-4 py-3 pr-16 sm:pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input font-mono"
                               />
                               <button
                                 onClick={() => {
-                                  // Set to the minimum of what's owed vs what user has in balance
-                                  const maxRepay = Math.min(
-                                    parseFloat(userLoan.borrowed || '0'),
-                                    parseFloat(larryBalance || '0')
-                                  ).toString();
-                                  setRepayAmount(maxRepay);
+                                  // IMPORTANT: Cannot repay exact borrowed amount due to contract requirement
+                                  // "require(borrowed > amount, \"Must repay less than borrowed amount\");"
+                                  const exactBorrowedAmount = userLoan.borrowed || '0';
+                                  const borrowedFloat = parseFloat(exactBorrowedAmount);
+                                  const balanceFloat = parseFloat(larryBalance || '0');
+                                  
+                                  // Set to slightly less than borrowed amount (99.99% of borrowed)
+                                  const maxRepayableFloat = borrowedFloat * 0.9999;
+                                  const maxRepayable = maxRepayableFloat.toFixed(12); // Keep precision
+                                  
+                                  if (balanceFloat >= maxRepayableFloat) {
+                                    setRepayAmount(maxRepayable);
+                                  } else {
+                                    // User doesn't have enough, use their balance
+                                    setRepayAmount(larryBalance);
+                                  }
                                 }}
                                 className="absolute right-14 sm:right-16 top-3 bg-blue-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-blue-600 transition-colors"
                               >
-                                MAX
+                                99%
                               </button>
                               <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                             </div>
                           </div>
+                          
+                          {/* Repayment Rules Info */}
+                          {userLoan.borrowed && parseFloat(userLoan.borrowed) > 0 && (
+                            <div className="bg-blue-50 rounded-lg p-3 text-xs sm:text-sm">
+                              <div className="font-semibold text-blue-800 mb-2">💡 Repayment Rules</div>
+                              <div className="space-y-1 text-blue-700">
+                                <div>Total owed: <span className="font-mono font-semibold">{userLoan.borrowed}</span> LARRY</div>
+                                <div>⚠️ <strong>Cannot repay the full amount here</strong></div>
+                                <div>Contract requires: <code>repay_amount &lt; borrowed_amount</code></div>
+                                <div className="mt-2 p-2 bg-blue-100 rounded text-blue-800">
+                                  <strong>To close loan completely:</strong><br/>
+                                  Use &quot;Close Position&quot; or &quot;Flash Close&quot; buttons below
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
                           <button
                             onClick={repayLoan}
                             disabled={!repayAmount || isLoading}
