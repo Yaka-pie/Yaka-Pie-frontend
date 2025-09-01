@@ -1567,11 +1567,6 @@ export default function TradePage() {
                 </button>
               ) : (
                 <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="text-xs sm:text-sm text-gray-700 min-w-0 flex-shrink">
-                    <div className="font-semibold truncate">LARRY: {parseFloat(larryBalance).toFixed(2)}</div>
-                    <div className="font-semibold truncate">YKP: {parseFloat(ykpBalance).toFixed(2)}</div>
-                  </div>
-
                   <div className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0">
                     <span className="hidden sm:inline">{account.slice(0, 6)}...{account.slice(-4)}</span>
                     <span className="sm:hidden">{account.slice(0, 4)}...{account.slice(-2)}</span>
@@ -1586,84 +1581,7 @@ export default function TradePage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 lg:py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-block relative mb-8">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl blur-2xl opacity-20 scale-110"></div>
-            <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-yellow-200">
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-3xl">🥧</span>
-                </div>
-                <div className="text-center">
-                  <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
-                    YAKA PIE Trading
-                  </h1>
-                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full font-bold text-lg inline-block mt-2">
-                    DeFi Protocol
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <p className="text-xl text-gray-700 max-w-3xl mx-auto">
-            Complete DeFi trading platform for YAKA PIE. Buy, sell, leverage, borrow, and manage positions with price protection.
-          </p>
-        </div>
-
-        {/* Network Info */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Network Information</h3>
-            <div className="flex gap-2">
-              {/* Debug/Test buttons removed per request */}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-semibold text-gray-700">Network</div>
-              <div className="text-gray-600">SEI EVM Mainnet</div>
-            </div>
-            <div>
-              <div className="font-semibold text-gray-700">Chain ID</div>
-              <div className="text-gray-600">{SEI_CHAIN_ID}</div>
-            </div>
-            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-              <div className="font-semibold text-gray-700">YKP Token</div>
-              <div className="text-gray-600 font-mono text-xs break-all">{YKP_TOKEN_ADDRESS}</div>
-            </div>
-            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-              <div className="font-semibold text-gray-700">LARRY Token</div>
-              <div className="text-gray-600 font-mono text-xs break-all">{LARRY_TOKEN_ADDRESS}</div>
-            </div>
-          </div>
-          
-          {/* Contract Status */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-              <div>
-                <div className="font-semibold text-gray-700">Contract Backing</div>
-                <div className={contractBacking === "0" ? "text-orange-600" : "text-green-600"}>
-                  {contractBacking === "0" ? "❌ Not Loaded" : `✅ ${contractBacking} LARRY`}
-                </div>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-700">Total Supply</div>
-                <div className={totalSupply === "0" ? "text-orange-600" : "text-green-600"}>
-                  {totalSupply === "0" ? "❌ Not Loaded" : `✅ ${totalSupply} YKP`}
-                </div>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-700">Buy Fee Rate</div>
-                <div className={buyFee === "975" ? "text-blue-600" : "text-green-600"}>
-                  {buyFee === "975" ? "🔄 Default" : `✅ ${((1000 - parseFloat(buyFee)) / 10).toFixed(1)}%`}
-                </div>
-              </div>
-            </div>
-            {/* Helper text removed per request */}
-          </div>
-        </div>
 
         {/* Price Comparison Panel */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-yellow-200 mb-8">
