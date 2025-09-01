@@ -299,10 +299,12 @@ export default function TradePage() {
       }) as string;
       
       const ykpBalanceWei = BigInt(ykpResult);
-      const ykpBalanceFloat = Number(ykpBalanceWei) / Math.pow(10, 18);
-      const ykpBalanceFloored = Math.floor(ykpBalanceFloat * 1e4) / 1e4; // avoid rounding up
-      const ykpBalanceFormatted = ykpBalanceFloored.toFixed(4);
-      setYkpBalance(ykpBalanceFormatted);
+      // Convert wei to ether with full precision
+      const ykpWeiString = ykpBalanceWei.toString();
+      const ykpEtherStr = ykpWeiString.length > 18 
+        ? ykpWeiString.slice(0, -18) + '.' + ykpWeiString.slice(-18).replace(/0+$/, '')
+        : '0.' + ykpWeiString.padStart(18, '0').replace(/0+$/, '');
+      setYkpBalance(ykpEtherStr.endsWith('.') ? ykpEtherStr.slice(0, -1) : ykpEtherStr || '0');
       
     } catch (error) {
       console.error("Failed to fetch balances:", error);
@@ -455,7 +457,12 @@ export default function TradePage() {
       const backingResult = await testSingleFunction('getBacking');
       if (backingResult) {
         const backingWei = BigInt(backingResult);
-        const backingFormatted = (Number(backingWei) / Math.pow(10, 18)).toFixed(4);
+        // Convert wei to ether with full precision
+        const backingWeiString = backingWei.toString();
+        const backingEtherStr = backingWeiString.length > 18 
+          ? backingWeiString.slice(0, -18) + '.' + backingWeiString.slice(-18).replace(/0+$/, '')
+          : '0.' + backingWeiString.padStart(18, '0').replace(/0+$/, '');
+        const backingFormatted = backingEtherStr.endsWith('.') ? backingEtherStr.slice(0, -1) : backingEtherStr || '0';
         setContractBacking(backingFormatted);
         console.log(`💰 Contract backing: ${backingFormatted} LARRY`);
       } else {
@@ -469,7 +476,12 @@ export default function TradePage() {
           }) as string;
           if (result && result !== '0x') {
             const wei = BigInt(result);
-            const formatted = (Number(wei) / Math.pow(10, 18)).toFixed(4);
+            // Convert wei to ether with full precision
+            const weiString = wei.toString();
+            const etherStr = weiString.length > 18 
+              ? weiString.slice(0, -18) + '.' + weiString.slice(-18).replace(/0+$/, '')
+              : '0.' + weiString.padStart(18, '0').replace(/0+$/, '');
+            const formatted = etherStr.endsWith('.') ? etherStr.slice(0, -1) : etherStr || '0';
             setContractBacking(formatted);
             console.log(`💰 Contract backing (fallback via LARRY.balanceOf): ${formatted} LARRY`);
           } else {
@@ -484,7 +496,12 @@ export default function TradePage() {
       const totalSupplyResult = await testSingleFunction('totalSupply');
       if (totalSupplyResult) {
         const totalSupplyWei = BigInt(totalSupplyResult);
-        const totalSupplyFormatted = (Number(totalSupplyWei) / Math.pow(10, 18)).toFixed(4);
+        // Convert wei to ether with full precision
+        const supplyWeiString = totalSupplyWei.toString();
+        const supplyEtherStr = supplyWeiString.length > 18 
+          ? supplyWeiString.slice(0, -18) + '.' + supplyWeiString.slice(-18).replace(/0+$/, '')
+          : '0.' + supplyWeiString.padStart(18, '0').replace(/0+$/, '');
+        const totalSupplyFormatted = supplyEtherStr.endsWith('.') ? supplyEtherStr.slice(0, -1) : supplyEtherStr || '0';
         setTotalSupply(totalSupplyFormatted);
         console.log(`🔢 Total supply: ${totalSupplyFormatted} YKP`);
       }
@@ -572,7 +589,12 @@ export default function TradePage() {
       }
       
       const tokensWei = BigInt(result);
-      const tokensFormatted = (Number(tokensWei) / Math.pow(10, 18)).toFixed(4);
+      // Convert wei to ether with full precision
+      const tokensWeiString = tokensWei.toString();
+      const tokensEtherStr = tokensWeiString.length > 18 
+        ? tokensWeiString.slice(0, -18) + '.' + tokensWeiString.slice(-18).replace(/0+$/, '')
+        : '0.' + tokensWeiString.padStart(18, '0').replace(/0+$/, '');
+      const tokensFormatted = tokensEtherStr.endsWith('.') ? tokensEtherStr.slice(0, -1) : tokensEtherStr || '0';
       console.log("✅ Tokens from getBuyTokens:", tokensFormatted, "YKP");
       
       return tokensFormatted;
@@ -703,9 +725,23 @@ export default function TradePage() {
       const endDate = BigInt('0x' + loanResultHex.slice(128, 192));
       const numberOfDays = BigInt('0x' + loanResultHex.slice(192, 256));
       
+      // Convert collateral wei to ether with full precision
+      const collateralWeiString = collateral.toString();
+      const collateralEtherStr = collateralWeiString.length > 18 
+        ? collateralWeiString.slice(0, -18) + '.' + collateralWeiString.slice(-18).replace(/0+$/, '')
+        : '0.' + collateralWeiString.padStart(18, '0').replace(/0+$/, '');
+      const collateralFormatted = collateralEtherStr.endsWith('.') ? collateralEtherStr.slice(0, -1) : collateralEtherStr || '0';
+      
+      // Convert borrowed wei to ether with full precision  
+      const borrowedWeiString = borrowed.toString();
+      const borrowedEtherStr = borrowedWeiString.length > 18 
+        ? borrowedWeiString.slice(0, -18) + '.' + borrowedWeiString.slice(-18).replace(/0+$/, '')
+        : '0.' + borrowedWeiString.padStart(18, '0').replace(/0+$/, '');
+      const borrowedFormatted = borrowedEtherStr.endsWith('.') ? borrowedEtherStr.slice(0, -1) : borrowedEtherStr || '0';
+      
       setUserLoan({
-        collateral: (Number(collateral) / Math.pow(10, 18)).toFixed(4),
-        borrowed: (Number(borrowed) / Math.pow(10, 18)).toFixed(4),
+        collateral: collateralFormatted,
+        borrowed: borrowedFormatted,
         endDate: endDate.toString(),
         numberOfDays: numberOfDays.toString()
       });
@@ -1366,9 +1402,8 @@ export default function TradePage() {
   };
 
   const setMaxYkp = () => {
-    // Use a conservative amount to avoid exceeding balance due to rounding
-    const amt = ykpBalance ? (Math.floor(parseFloat(ykpBalance) * 1e4) / 1e4).toFixed(4) : "0";
-    setSellYkpAmount(amt);
+    // Use exact YKP balance
+    setSellYkpAmount(ykpBalance);
   };
 
   return (
