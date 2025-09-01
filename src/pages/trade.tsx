@@ -2427,19 +2427,66 @@ export default function TradePage() {
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Borrow LARRY</h2>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        LARRY Amount to Borrow
-                      </label>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          LARRY Amount to Borrow
+                        </label>
+                        <div className="text-xs sm:text-sm text-gray-600 truncate">
+                          YKP Balance: {ykpBalance} YKP
+                        </div>
+                      </div>
                       <div className="relative">
                         <input
                           type="number"
                           value={borrowLarryAmount}
                           onChange={(e) => setBorrowLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                          className="w-full px-4 py-3 pr-20 sm:pr-24 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                         />
+                        <button
+                          onClick={() => {
+                            // Calculate maximum LARRY that can be borrowed based on YKP balance
+                            const ykpBalanceFloat = parseFloat(ykpBalance || '0');
+                            if (ykpBalanceFloat > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0) {
+                              // Calculate YKP value in LARRY terms
+                              const ykpValueInLarry = (ykpBalanceFloat * parseFloat(contractBacking)) / parseFloat(totalSupply);
+                              // Max borrowable is 99% of collateral value (contract allows this)
+                              const maxBorrowable = ykpValueInLarry * 0.99; // 99% as per contract requirement
+                              setBorrowLarryAmount(maxBorrowable.toFixed(4));
+                            } else {
+                              // Fallback: if no contract data, assume 1:1 ratio and use 99%
+                              const maxBorrowable = ykpBalanceFloat * 0.99; 
+                              setBorrowLarryAmount(maxBorrowable.toFixed(4));
+                            }
+                          }}
+                          className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                        >
+                          MAX
+                        </button>
                         <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
+                      
+                      {/* Borrowing Capacity Info */}
+                      {ykpBalance && parseFloat(ykpBalance) > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0 && (
+                        <div className="bg-blue-50 rounded-lg p-3 text-xs sm:text-sm mt-3">
+                          <div className="font-semibold text-blue-800 mb-2">💡 Borrowing Capacity</div>
+                          {(() => {
+                            const ykpBalanceFloat = parseFloat(ykpBalance);
+                            const ykpValueInLarry = (ykpBalanceFloat * parseFloat(contractBacking)) / parseFloat(totalSupply);
+                            const maxBorrowable = ykpValueInLarry * 0.99; // 99% as per contract
+                            const currentBorrowAmount = parseFloat(borrowLarryAmount || '0');
+                            const utilizationRatio = maxBorrowable > 0 ? (currentBorrowAmount / maxBorrowable) * 100 : 0;
+                            
+                            return (
+                              <div className="space-y-1 text-blue-700">
+                                <div>YKP Collateral Value: <span className="font-semibold">{ykpValueInLarry.toFixed(4)} LARRY</span></div>
+                                <div>Max Borrowable (99%): <span className="font-semibold text-green-600">{maxBorrowable.toFixed(4)} LARRY</span></div>
+                                <div>Current Utilization: <span className={`font-semibold ${utilizationRatio > 90 ? 'text-red-600' : utilizationRatio > 70 ? 'text-yellow-600' : 'text-green-600'}`}>{utilizationRatio.toFixed(1)}%</span></div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
 
                     <div>
