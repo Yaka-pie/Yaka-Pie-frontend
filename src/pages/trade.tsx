@@ -289,6 +289,21 @@ export default function TradePage() {
     }
   }, [userLoan.endDate]);
 
+  // Auto-switch tabs based on loan status
+  useEffect(() => {
+    const hasExistingLoan = userLoan && userLoan.borrowed && parseFloat(userLoan.borrowed) > 0;
+    
+    // If user has a loan but is on leverage/borrow tab, switch to borrow-more
+    if (hasExistingLoan && (activeTab === "leverage" || activeTab === "borrow")) {
+      setActiveTab("borrow-more");
+    }
+    
+    // If user has no loan but is on borrow-more/manage tab, switch to buy
+    if (!hasExistingLoan && (activeTab === "borrow-more" || activeTab === "manage")) {
+      setActiveTab("buy");
+    }
+  }, [userLoan.borrowed, activeTab]);
+
   // Function to fetch user balances
   const fetchBalances = async (userAccount: string) => {
     if (!window.ethereum) return;
@@ -1972,15 +1987,30 @@ export default function TradePage() {
           {/* Tab Navigation */}
           <div className="bg-gray-50 border-b border-gray-200">
             <div className="flex overflow-x-auto scrollbar-hide">
-              {[
-                { id: "buy", label: "Buy YKP", icon: "🛒" },
-                { id: "sell", label: "Sell YKP", icon: "💰" },
-                { id: "leverage", label: "Leverage", icon: "🚀" },
-                { id: "borrow", label: "Borrow", icon: "🏦" },
-                { id: "borrow-more", label: "Borrow More", icon: "📈" },
-                { id: "manage", label: "Manage Position", icon: "⚙️" },
+              {(() => {
+                // Check if user has an existing loan
+                const hasExistingLoan = userLoan && userLoan.borrowed && parseFloat(userLoan.borrowed) > 0;
                 
-              ].map((tab) => (
+                const allTabs = [
+                  { id: "buy", label: "Buy YKP", icon: "🛒" },
+                  { id: "sell", label: "Sell YKP", icon: "💰" },
+                  // Only show leverage and borrow if NO existing loan
+                  ...(!hasExistingLoan ? [
+                    { id: "leverage", label: "Leverage", icon: "🚀" },
+                    { id: "borrow", label: "Borrow", icon: "🏦" },
+                  ] : []),
+                  // Only show borrow more if HAS existing loan  
+                  ...(hasExistingLoan ? [
+                    { id: "borrow-more", label: "Borrow More", icon: "📈" },
+                  ] : []),
+                  // Always show manage position if has loan
+                  ...(hasExistingLoan ? [
+                    { id: "manage", label: "Manage Position", icon: "⚙️" },
+                  ] : []),
+                ];
+                
+                return allTabs;
+              })().map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
