@@ -1885,15 +1885,15 @@ export default function TradePage() {
               <>
                 {/* Buy Tab */}
                 {activeTab === "buy" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Buy YKP Tokens</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Buy YKP Tokens</h2>
 
                     <div>
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
                         <label className="block text-sm font-semibold text-gray-700">
                           LARRY Amount to Spend
                         </label>
-                        <div className="text-sm text-gray-600 truncate">
+                        <div className="text-xs sm:text-sm text-gray-600 truncate">
                           Balance: {parseFloat(larryBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} LARRY
                         </div>
                       </div>
@@ -1907,11 +1907,11 @@ export default function TradePage() {
                         />
                         <button
                           onClick={setMaxLarry}
-                          className="absolute right-16 top-3 bg-yellow-500 text-white px-2 py-1 rounded text-sm font-medium hover:bg-yellow-600 transition-colors"
+                          className="absolute right-14 sm:right-16 top-3 bg-yellow-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-yellow-600 transition-colors"
                         >
                           MAX
                         </button>
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
@@ -2049,15 +2049,15 @@ export default function TradePage() {
 
                 {/* Sell Tab */}
                 {activeTab === "sell" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Sell YKP Tokens</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Sell YKP Tokens</h2>
 
                     <div>
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
                         <label className="block text-sm font-semibold text-gray-700">
                           YKP Amount to Sell
                         </label>
-                        <div className="text-sm text-gray-600 truncate">
+                        <div className="text-xs sm:text-sm text-gray-600 truncate">
                           Balance: {parseFloat(ykpBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} YKP
                         </div>
                       </div>
@@ -2071,7 +2071,7 @@ export default function TradePage() {
                         />
                         <button
                           onClick={setMaxYkp}
-                          className="absolute right-16 top-3 bg-yellow-500 text-white px-2 py-1 rounded text-sm font-medium hover:bg-yellow-600 transition-colors"
+                          className="absolute right-12 sm:right-16 top-3 bg-yellow-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-yellow-600 transition-colors"
                         >
                           MAX
                         </button>
@@ -2091,7 +2091,7 @@ export default function TradePage() {
                           placeholder="0.0000"
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900 mobile-responsive-input"
                         />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
@@ -2126,7 +2126,7 @@ export default function TradePage() {
                     <button
                       onClick={sellYKP}
                       disabled={!sellYkpAmount || isLoading}
-                      className="w-full bg-gradient-to-r from-red-400 to-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-red-400 to-pink-500 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center gap-2">
@@ -2146,8 +2146,8 @@ export default function TradePage() {
 
                 {/* Leverage Tab */}
                 {activeTab === "leverage" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Leverage Position</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Leverage Position</h2>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -2159,15 +2159,15 @@ export default function TradePage() {
                           value={leverageLarryAmount}
                           onChange={(e) => setLeverageLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                         />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Loan Duration (Days): {leverageDays}
+                        Loan Duration: <span className="text-purple-600 font-bold">{leverageDays} Days</span>
                       </label>
                       <input
                         type="range"
@@ -2176,13 +2176,13 @@ export default function TradePage() {
                         step="1"
                         value={leverageDays}
                         onChange={(e) => setLeverageDays(e.target.value)}
-                        className="w-full accent-purple-500"
+                        className="w-full accent-purple-500 h-2"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
                         <span>1</span>
-                        <span>90</span>
-                        <span>180</span>
-                        <span>270</span>
+                        <span className="hidden sm:inline">90</span>
+                        <span className="hidden sm:inline">180</span>
+                        <span className="hidden sm:inline">270</span>
                         <span>365</span>
                       </div>
                     </div>
@@ -2197,9 +2197,9 @@ export default function TradePage() {
                           value={leverageFee}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900 mobile-responsive-input"
                         />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
@@ -2257,7 +2257,7 @@ export default function TradePage() {
                     <button
                       onClick={leveragePosition}
                       disabled={!leverageLarryAmount || !leverageDays || isLoading}
-                      className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center gap-2">
@@ -2277,8 +2277,8 @@ export default function TradePage() {
 
                 {/* Borrow Tab */}
                 {activeTab === "borrow" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Borrow LARRY</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Borrow LARRY</h2>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -2292,13 +2292,13 @@ export default function TradePage() {
                           placeholder="Enter LARRY amount"
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Loan Duration (Days): {borrowDays}
+                        Loan Duration: <span className="text-blue-600 font-bold">{borrowDays} Days</span>
                       </label>
                       <input
                         type="range"
@@ -2307,13 +2307,13 @@ export default function TradePage() {
                         step="1"
                         value={borrowDays}
                         onChange={(e) => setBorrowDays(e.target.value)}
-                        className="w-full accent-yellow-500"
+                        className="w-full accent-yellow-500 h-2"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
                         <span>1</span>
-                        <span>90</span>
-                        <span>180</span>
-                        <span>270</span>
+                        <span className="hidden sm:inline">90</span>
+                        <span className="hidden sm:inline">180</span>
+                        <span className="hidden sm:inline">270</span>
                         <span>365</span>
                       </div>
                     </div>
@@ -2359,7 +2359,7 @@ export default function TradePage() {
                     <button
                       onClick={borrowLARRY}
                       disabled={!borrowLarryAmount || !borrowDays || isLoading}
-                      className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center gap-2">
@@ -2379,8 +2379,8 @@ export default function TradePage() {
 
                 {/* Borrow More Tab */}
                 {activeTab === "borrow-more" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Borrow More LARRY</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Borrow More LARRY</h2>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -2394,7 +2394,7 @@ export default function TradePage() {
                           placeholder="Enter additional LARRY amount"
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                         />
-                        <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                        <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
 
@@ -2414,7 +2414,7 @@ export default function TradePage() {
                     <button
                       onClick={borrowMoreLARRY}
                       disabled={!borrowMoreAmount || isLoading}
-                      className="w-full bg-gradient-to-r from-orange-400 to-red-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-orange-400 to-red-500 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="flex items-center justify-center gap-2">
@@ -2434,13 +2434,13 @@ export default function TradePage() {
 
                 {/* Manage Position Tab */}
                 {activeTab === "manage" && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Manage Your Position</h2>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Manage Your Position</h2>
 
                     {/* Current Loan Summary */}
-                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Current Loan</h3>
-                      <div className="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Current Loan</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-gray-700">
                         <div className="flex justify-between"><span>Collateral</span><span>{userLoan.collateral} YKP</span></div>
                         <div className="flex justify-between"><span>Borrowed</span><span>{userLoan.borrowed} LARRY</span></div>
                         <div className="flex justify-between"><span>Duration</span><span>{userLoan.numberOfDays} days</span></div>
@@ -2470,7 +2470,7 @@ export default function TradePage() {
                           <button
                             onClick={removeCollateral}
                             disabled={!removeCollateralAmount || isLoading}
-                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Remove Collateral
                           </button>
@@ -2492,13 +2492,13 @@ export default function TradePage() {
                                 placeholder="Enter LARRY amount"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
                               />
-                              <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
+                              <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                             </div>
                           </div>
                           <button
                             onClick={repayLoan}
                             disabled={!repayAmount || isLoading}
-                            className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Repay Loan
                           </button>
@@ -2528,7 +2528,7 @@ export default function TradePage() {
                           <button
                             onClick={extendLoan}
                             disabled={!extendDays || isLoading}
-                            className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Extend Loan
                           </button>
@@ -2541,7 +2541,7 @@ export default function TradePage() {
                         <button
                           onClick={closePosition}
                           disabled={isLoading}
-                          className="flex-1 bg-gradient-to-r from-red-400 to-pink-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 bg-gradient-to-r from-red-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Close Position
                         </button>
