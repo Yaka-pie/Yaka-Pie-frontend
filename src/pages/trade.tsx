@@ -275,6 +275,20 @@ export default function TradePage() {
     }
   }, [borrowLarryAmount, contractBacking, totalSupply]);
 
+  // Set default extend days to maximum extendable days
+  useEffect(() => {
+    if (userLoan && userLoan.endDate && userLoan.endDate !== "0") {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const loanEndTime = parseInt(userLoan.endDate);
+      const remainingDays = Math.max(0, Math.floor((loanEndTime - currentTime) / (24 * 60 * 60)));
+      const maxExtendableDays = Math.max(0, 365 - remainingDays);
+      
+      if (maxExtendableDays > 0 && (!extendDays || extendDays === "30")) {
+        setExtendDays(maxExtendableDays.toString());
+      }
+    }
+  }, [userLoan.endDate]);
+
   // Function to fetch user balances
   const fetchBalances = async (userAccount: string) => {
     if (!window.ethereum) return;
@@ -1534,7 +1548,54 @@ export default function TradePage() {
 
   const extendLoan = async () => {
     if (!isConnected || !extendDays) return;
-    alert("Extend Loan functionality will be implemented soon!");
+    if (!window.ethereum) return;
+    
+    setIsLoading(true);
+    setTxHash("");
+    
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+      const account = accounts[0];
+      
+      // Convert days to uint256 parameter
+      const daysToExtend = parseInt(extendDays);
+      const daysParam = '0x' + daysToExtend.toString(16).padStart(64, '0');
+      
+      // Function selector for extendLoan(uint256)
+      const functionSelector = '0x7ace2ac9';
+      const data = functionSelector + daysParam.slice(2);
+      
+      console.log(`Extending loan by ${daysToExtend} days`);
+      console.log('Transaction data:', data);
+      
+      const txParams = {
+        from: account,
+        to: YKP_TOKEN_ADDRESS,
+        data: data,
+        gasLimit: '0x7A120', // 500,000 gas limit
+      };
+      
+      const hash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txParams],
+      }) as string;
+      
+      setTxHash(hash);
+      console.log('Extend loan transaction sent:', hash);
+      alert(`Loan extension submitted! Transaction hash: ${hash}`);
+      
+      // Refresh data after delay
+      setTimeout(() => {
+        fetchBalances(account);
+        fetchContractState();
+        fetchUserLoan(account);
+      }, 3000);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Extend loan failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const closePosition = async () => {
@@ -2696,32 +2757,63 @@ export default function TradePage() {
 
                     <div className="border-t border-gray-200 pt-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Extend Loan</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Additional Days
-                          </label>
-                          <select
-                            value={extendDays}
-                            onChange={(e) => setExtendDays(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
-                          >
-                            <option value="7">7 Days</option>
-                            <option value="14">14 Days</option>
-                            <option value="30">30 Days</option>
-                            <option value="60">60 Days</option>
-                          </select>
-                        </div>
-                        <div className="flex items-end">
-                          <button
-                            onClick={extendLoan}
-                            disabled={!extendDays || isLoading}
-                            className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Extend Loan
-                          </button>
-                        </div>
-                      </div>
+                      {(() => {
+                        // Calculate maximum extendable days
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        const loanEndTime = parseInt(userLoan.endDate || '0');
+                        const remainingDays = Math.max(0, Math.floor((loanEndTime - currentTime) / (24 * 60 * 60)));
+                        const maxExtendableDays = Math.max(0, 365 - remainingDays);
+                        
+                        
+                        return (
+                          <>
+                            {/* Loan Status Info */}
+                            <div className="bg-purple-50 rounded-lg p-4 mb-6">
+                              <div className="font-semibold text-purple-800 mb-2">📅 Loan Duration Status</div>
+                              <div className="space-y-1 text-sm text-purple-700">
+                                <div>Current remaining: <span className="font-semibold">{remainingDays} days</span></div>
+                                <div>Maximum total duration: <span className="font-semibold">365 days</span></div>
+                                <div>Maximum extendable: <span className="font-semibold text-green-600">{maxExtendableDays} days</span></div>
+                                {maxExtendableDays === 0 && (
+                                  <div className="text-red-600 font-semibold mt-2">⚠️ Cannot extend - already at maximum duration</div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                              <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                  Additional Days (Max: {maxExtendableDays})
+                                </label>
+                                <select
+                                  value={extendDays}
+                                  onChange={(e) => setExtendDays(e.target.value)}
+                                  disabled={maxExtendableDays === 0}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                >
+                                  {maxExtendableDays === 0 && <option value="0">Cannot Extend</option>}
+                                  {maxExtendableDays >= 7 && <option value="7">7 Days</option>}
+                                  {maxExtendableDays >= 14 && <option value="14">14 Days</option>}
+                                  {maxExtendableDays >= 30 && <option value="30">30 Days</option>}
+                                  {maxExtendableDays >= 60 && <option value="60">60 Days</option>}
+                                  {maxExtendableDays >= 90 && <option value="90">90 Days</option>}
+                                  {maxExtendableDays >= 180 && <option value="180">180 Days</option>}
+                                  {maxExtendableDays > 0 && maxExtendableDays !== 7 && maxExtendableDays !== 14 && maxExtendableDays !== 30 && maxExtendableDays !== 60 && maxExtendableDays !== 90 && maxExtendableDays !== 180 && <option value={maxExtendableDays.toString()}>MAX: {maxExtendableDays} Days</option>}
+                                </select>
+                              </div>
+                              <div className="flex items-end">
+                                <button
+                                  onClick={extendLoan}
+                                  disabled={!extendDays || isLoading || maxExtendableDays === 0 || parseInt(extendDays) > maxExtendableDays}
+                                  className="w-full bg-gradient-to-r from-purple-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {maxExtendableDays === 0 ? 'Cannot Extend' : 'Extend Loan'}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <div className="border-t border-gray-200 pt-6">
