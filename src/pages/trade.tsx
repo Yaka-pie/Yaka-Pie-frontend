@@ -1340,26 +1340,10 @@ export default function TradePage() {
       const collateralWei = BigInt(Math.floor(collateralFloat * Math.pow(10, decimals)));
       const collateralHex = '0x' + collateralWei.toString(16);
       
-      // Step 1: Approve YKP tokens as collateral
-      const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, collateralHex]);
-
-      console.log("Step 1: Approving YKP tokens as collateral...");
-      const approveTxHash = await executeTransaction(YKP_TOKEN_ADDRESS, approveData);
-
-      if (!approveTxHash) {
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("YKP tokens approved! Hash:", approveTxHash);
-
-      // Wait a moment for approval transaction to be mined
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 2: Call borrow function on YKP contract
+      // Call borrow function on YKP contract (no approval needed for native YKP collateral)
       const borrowData = encodeFunctionCall('borrow', [larryAmountHex, numberOfDaysHex]);
 
-      console.log("Step 2: Creating borrow position...");
+      console.log("Creating borrow position...");
       console.log("LARRY Amount (hex):", larryAmountHex);
       console.log("Number of Days (hex):", numberOfDaysHex);
       console.log("Borrow Data:", borrowData);
