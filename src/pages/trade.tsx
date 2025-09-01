@@ -1662,7 +1662,7 @@ export default function TradePage() {
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <div className="grid grid-cols-4 gap-4 text-sm font-semibold text-gray-700 mb-3">
               <div>Trading Pair</div>
-              <div className="text-center">Our DEX Rate</div>
+              <div className="text-center">YAKA PIE Rate</div>
               <div className="text-center">OpenOcean Rate</div>
               <div className="text-center">Difference</div>
             </div>
@@ -1770,8 +1770,8 @@ export default function TradePage() {
                           <div className="font-medium text-blue-800 bg-blue-50 px-3 py-2 rounded">
                             <div className="font-bold mb-1">Complete Arbitrage Cycle:</div>
                             <div>1. Start: 1 LARRY</div>
-                            <div>2. Convert: 1 LARRY → {cycle1_ykp.toFixed(6)} YKP ({ourLarryToYkpRate > openOceanLarryToYkpRate ? 'on YOUR DEX' : 'on OpenOcean'}) ✅</div>
-                            <div>3. Convert: {cycle1_ykp.toFixed(6)} YKP → {cycle1_larry.toFixed(6)} LARRY ({ourYkpToLarryRate > openOceanYkpToLarryRate ? 'on YOUR DEX' : 'on OpenOcean'}) ✅</div>
+                            <div>2. Convert: 1 LARRY → {cycle1_ykp.toFixed(6)} YKP ({ourLarryToYkpRate > openOceanLarryToYkpRate ? 'on YAKA PIE' : 'on OpenOcean'}) ✅</div>
+                            <div>3. Convert: {cycle1_ykp.toFixed(6)} YKP → {cycle1_larry.toFixed(6)} LARRY ({ourYkpToLarryRate > openOceanYkpToLarryRate ? 'on YAKA PIE' : 'on OpenOcean'}) ✅</div>
                             <div className="font-bold text-green-700">4. End Result: {cycle1_larry.toFixed(6)} LARRY</div>
                           </div>
                           
