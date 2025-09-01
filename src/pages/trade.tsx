@@ -2569,8 +2569,58 @@ export default function TradePage() {
                           value={borrowMoreAmount}
                           onChange={(e) => setBorrowMoreAmount(e.target.value)}
                           placeholder="Enter additional LARRY amount"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                          className="w-full px-4 py-3 pr-20 sm:pr-24 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                         />
+                        <button
+                          onClick={() => {
+                            // Calculate maximum borrowable based on wallet + existing collateral
+                            // Following contract logic: total collateral (existing + wallet) * 0.99 - current borrowed
+                            console.log('=== BORROW MORE MAX CALCULATION ===');
+                            
+                            const currentCollateral = parseFloat(userLoan.collateral || '0');
+                            const currentBorrowed = parseFloat(userLoan.borrowed || '0'); 
+                            const walletBalance = parseFloat(ykpBalance || '0');
+                            
+                            console.log('currentCollateral:', currentCollateral);
+                            console.log('currentBorrowed:', currentBorrowed);
+                            console.log('walletBalance:', walletBalance);
+                            
+                            if (contractBacking && totalSupply && parseFloat(contractBacking) > 0 && parseFloat(totalSupply) > 0) {
+                              // Total possible collateral = existing + wallet
+                              const totalPossibleCollateral = currentCollateral + walletBalance;
+                              
+                              // Calculate total collateral value in LARRY
+                              const totalCollateralValueInLarry = (totalPossibleCollateral * parseFloat(contractBacking)) / parseFloat(totalSupply);
+                              
+                              // Max total borrowable is 99% of total possible collateral
+                              const maxTotalBorrowable = totalCollateralValueInLarry * 0.99;
+                              
+                              // Max additional = max total - current borrowed
+                              const maxAdditionalBorrowable = Math.max(0, maxTotalBorrowable - currentBorrowed);
+                              
+                              console.log('totalPossibleCollateral:', totalPossibleCollateral);
+                              console.log('totalCollateralValueInLarry:', totalCollateralValueInLarry);
+                              console.log('maxTotalBorrowable:', maxTotalBorrowable);
+                              console.log('maxAdditionalBorrowable:', maxAdditionalBorrowable);
+                              
+                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(4));
+                            } else {
+                              // Fallback: assume 1:1 ratio
+                              const totalPossibleCollateral = currentCollateral + walletBalance;
+                              const maxTotalBorrowable = totalPossibleCollateral * 0.99;
+                              const maxAdditionalBorrowable = Math.max(0, maxTotalBorrowable - currentBorrowed);
+                              
+                              console.log('Fallback - totalPossibleCollateral:', totalPossibleCollateral);
+                              console.log('Fallback - maxAdditionalBorrowable:', maxAdditionalBorrowable);
+                              
+                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(4));
+                            }
+                            console.log('=== END MAX CALCULATION ===');
+                          }}
+                          className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
+                        >
+                          MAX
+                        </button>
                         <div className="absolute right-2 sm:right-3 top-3 text-gray-500 font-semibold text-xs sm:text-base">LARRY</div>
                       </div>
                     </div>
@@ -2582,8 +2632,8 @@ export default function TradePage() {
                           <span>Additional Amount:</span>
                           <span>{borrowMoreAmount || "0"} LARRY</span>
                         </div>
-                        <div className="text-orange-600 text-sm mt-2">
-                          💡 You can borrow more against your existing collateral position
+                        <div className="text-green-600 text-sm mt-2">
+                          💡 Smart function: Uses existing excess collateral when possible, adds new YKP from your wallet only when needed
                         </div>
                       </div>
                     </div>
