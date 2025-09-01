@@ -1545,19 +1545,19 @@ export default function TradePage() {
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-yellow-200/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-2xl">🥧</span>
+          <div className="flex items-center justify-between min-w-0">
+            <Link href="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+                <span className="text-lg sm:text-2xl">🥧</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">YAKA PIE</h1>
-                <p className="text-sm text-gray-600">DeFi Trading Platform</p>
+              <div className="min-w-0 flex-shrink">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">YAKA PIE</h1>
+                <p className="text-xs sm:text-sm text-gray-600 truncate hidden sm:block">DeFi Trading Platform</p>
               </div>
             </Link>
 
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-gray-700 hover:text-yellow-600 transition-colors">Home</Link>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link href="/" className="text-gray-700 hover:text-yellow-600 transition-colors hidden sm:block">Home</Link>
               {!isConnected ? (
                 <button
                   onClick={connectWallet}
@@ -1566,16 +1566,17 @@ export default function TradePage() {
                   Connect Wallet
                 </button>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <div className="text-sm text-gray-700">
-                    <div className="font-semibold">LARRY: {larryBalance}</div>
-                    <div className="font-semibold">YKP: {ykpBalance}</div>
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="text-xs sm:text-sm text-gray-700 min-w-0 flex-shrink">
+                    <div className="font-semibold truncate">LARRY: {parseFloat(larryBalance).toFixed(2)}</div>
+                    <div className="font-semibold truncate">YKP: {parseFloat(ykpBalance).toFixed(2)}</div>
                   </div>
 
-                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {account.slice(0, 6)}...{account.slice(-4)}
+                  <div className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0">
+                    <span className="hidden sm:inline">{account.slice(0, 6)}...{account.slice(-4)}</span>
+                    <span className="sm:hidden">{account.slice(0, 4)}...{account.slice(-2)}</span>
                   </div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
                 </div>
               )}
             </div>
@@ -1892,8 +1893,8 @@ export default function TradePage() {
                         <label className="block text-sm font-semibold text-gray-700">
                           LARRY Amount to Spend
                         </label>
-                        <div className="text-sm text-gray-600">
-                          Balance: {larryBalance} LARRY
+                        <div className="text-sm text-gray-600 truncate">
+                          Balance: {parseFloat(larryBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} LARRY
                         </div>
                       </div>
                       <div className="relative">
@@ -2056,8 +2057,8 @@ export default function TradePage() {
                         <label className="block text-sm font-semibold text-gray-700">
                           YKP Amount to Sell
                         </label>
-                        <div className="text-sm text-gray-600">
-                          Balance: {ykpBalance} YKP
+                        <div className="text-sm text-gray-600 truncate">
+                          Balance: {parseFloat(ykpBalance || '0').toLocaleString(undefined, {maximumFractionDigits: 2})} YKP
                         </div>
                       </div>
                       <div className="relative">
