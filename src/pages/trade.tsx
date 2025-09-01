@@ -1526,7 +1526,22 @@ export default function TradePage() {
   };
 
   return (
-    <div className={`${geistSans.className} ${inter.variable} min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100`}>
+    <>
+      <style jsx global>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        @media (max-width: 640px) {
+          .mobile-responsive-input {
+            font-size: 16px;
+          }
+        }
+      `}</style>
+      <div className={`${geistSans.className} ${inter.variable} min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100`}>
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-yellow-200/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -1569,7 +1584,7 @@ export default function TradePage() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 lg:py-12">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-block relative mb-8">
@@ -1604,7 +1619,7 @@ export default function TradePage() {
               {/* Debug/Test buttons removed per request */}
             </div>
           </div>
-          <div className="grid md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div>
               <div className="font-semibold text-gray-700">Network</div>
               <div className="text-gray-600">SEI EVM Mainnet</div>
@@ -1613,19 +1628,19 @@ export default function TradePage() {
               <div className="font-semibold text-gray-700">Chain ID</div>
               <div className="text-gray-600">{SEI_CHAIN_ID}</div>
             </div>
-            <div>
+            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
               <div className="font-semibold text-gray-700">YKP Token</div>
-              <div className="text-gray-600 font-mono text-xs">{YKP_TOKEN_ADDRESS}</div>
+              <div className="text-gray-600 font-mono text-xs break-all">{YKP_TOKEN_ADDRESS}</div>
             </div>
-            <div>
+            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
               <div className="font-semibold text-gray-700">LARRY Token</div>
-              <div className="text-gray-600 font-mono text-xs">{LARRY_TOKEN_ADDRESS}</div>
+              <div className="text-gray-600 font-mono text-xs break-all">{LARRY_TOKEN_ADDRESS}</div>
             </div>
           </div>
           
           {/* Contract Status */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="font-semibold text-gray-700">Contract Backing</div>
                 <div className={contractBacking === "0" ? "text-orange-600" : "text-green-600"}>
@@ -1660,66 +1675,78 @@ export default function TradePage() {
 
           {/* Price Comparison Table */}
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <div className="grid grid-cols-4 gap-4 text-sm font-semibold text-gray-700 mb-3">
-              <div>Trading Pair</div>
-              <div className="text-center">YAKA PIE Rate</div>
-              <div className="text-center">OpenOcean Rate</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm font-semibold text-gray-700 mb-3">
+              <div className="col-span-2 sm:col-span-1">Trading Pair</div>
+              <div className="text-center sm:block hidden">YAKA PIE Rate</div>
+              <div className="text-center sm:block hidden">OpenOcean Rate</div>
               <div className="text-center">Difference</div>
             </div>
             <div className="space-y-3">
               {/* LARRY → YKP */}
-              <div className="grid grid-cols-4 gap-4 items-center py-2 px-3 bg-white rounded-lg">
-                <div className="font-bold text-gray-800">💰 LARRY → YKP</div>
-                <div className="text-center font-mono">
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                    {contractBacking && totalSupply && parseFloat(totalSupply) > 0 
-                      ? (parseFloat(totalSupply) / parseFloat(contractBacking)).toFixed(6)
-                      : '0.000000'} YKP
-                  </span>
+              <div className="bg-white rounded-lg p-3 mb-2">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="font-bold text-gray-800 text-sm sm:text-base">💰 LARRY → YKP</div>
+                  <div className="text-center">
+                    <span className={`font-bold px-2 py-1 rounded text-xs sm:text-sm ${
+                      (contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                        ? parseFloat(totalSupply) / parseFloat(contractBacking)
+                        : 0) > openOceanPrices.larryToYkpRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {openOceanPrices.larryToYkpRate > 0 && contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                        ? (((parseFloat(totalSupply) / parseFloat(contractBacking)) - openOceanPrices.larryToYkpRate) / openOceanPrices.larryToYkpRate * 100).toFixed(2) 
+                        : '0.00'}%
+                    </span>
+                  </div>
                 </div>
-                <div className="text-center font-mono">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {openOceanPrices.larryToYkpRate.toFixed(6)} YKP
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className={`font-bold px-2 py-1 rounded ${
-                    (contractBacking && totalSupply && parseFloat(totalSupply) > 0 
-                      ? parseFloat(totalSupply) / parseFloat(contractBacking)
-                      : 0) > openOceanPrices.larryToYkpRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {openOceanPrices.larryToYkpRate > 0 && contractBacking && totalSupply && parseFloat(totalSupply) > 0 
-                      ? (((parseFloat(totalSupply) / parseFloat(contractBacking)) - openOceanPrices.larryToYkpRate) / openOceanPrices.larryToYkpRate * 100).toFixed(2) 
-                      : '0.00'}%
-                  </span>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                  <div>
+                    <div className="text-gray-500 mb-1">YAKA PIE</div>
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded font-mono">
+                      {contractBacking && totalSupply && parseFloat(totalSupply) > 0 
+                        ? (parseFloat(totalSupply) / parseFloat(contractBacking)).toFixed(4)
+                        : '0.0000'}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 mb-1">OpenOcean</div>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">
+                      {openOceanPrices.larryToYkpRate.toFixed(4)}
+                    </span>
+                  </div>
                 </div>
               </div>
               
               {/* YKP → LARRY */}
-              <div className="grid grid-cols-4 gap-4 items-center py-2 px-3 bg-white rounded-lg">
-                <div className="font-bold text-gray-800">🥧 YKP → LARRY</div>
-                <div className="text-center font-mono">
-                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                    {contractBacking && totalSupply && parseFloat(contractBacking) > 0 
-                      ? (parseFloat(contractBacking) / parseFloat(totalSupply)).toFixed(6)
-                      : '0.000000'} LARRY
-                  </span>
+              <div className="bg-white rounded-lg p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="font-bold text-gray-800 text-sm sm:text-base">🥧 YKP → LARRY</div>
+                  <div className="text-center">
+                    <span className={`font-bold px-2 py-1 rounded text-xs sm:text-sm ${
+                      (contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                        ? parseFloat(contractBacking) / parseFloat(totalSupply)
+                        : 0) > openOceanPrices.ykpToLarryRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {openOceanPrices.ykpToLarryRate > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                        ? (((parseFloat(contractBacking) / parseFloat(totalSupply)) - openOceanPrices.ykpToLarryRate) / openOceanPrices.ykpToLarryRate * 100).toFixed(2) 
+                        : '0.00'}%
+                    </span>
+                  </div>
                 </div>
-                <div className="text-center font-mono">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {openOceanPrices.ykpToLarryRate.toFixed(6)} LARRY
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className={`font-bold px-2 py-1 rounded ${
-                    (contractBacking && totalSupply && parseFloat(contractBacking) > 0 
-                      ? parseFloat(contractBacking) / parseFloat(totalSupply)
-                      : 0) > openOceanPrices.ykpToLarryRate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {openOceanPrices.ykpToLarryRate > 0 && contractBacking && totalSupply && parseFloat(contractBacking) > 0 
-                      ? (((parseFloat(contractBacking) / parseFloat(totalSupply)) - openOceanPrices.ykpToLarryRate) / openOceanPrices.ykpToLarryRate * 100).toFixed(2) 
-                      : '0.00'}%
-                  </span>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                  <div>
+                    <div className="text-gray-500 mb-1">YAKA PIE</div>
+                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded font-mono">
+                      {contractBacking && totalSupply && parseFloat(contractBacking) > 0 
+                        ? (parseFloat(contractBacking) / parseFloat(totalSupply)).toFixed(4)
+                        : '0.0000'}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 mb-1">OpenOcean</div>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">
+                      {openOceanPrices.ykpToLarryRate.toFixed(4)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1813,7 +1840,7 @@ export default function TradePage() {
         <div className="bg-white rounded-3xl shadow-2xl border border-yellow-200 overflow-hidden">
           {/* Tab Navigation */}
           <div className="bg-gray-50 border-b border-gray-200">
-            <div className="flex overflow-x-auto">
+            <div className="flex overflow-x-auto scrollbar-hide">
               {[
                 { id: "buy", label: "Buy YKP", icon: "🛒" },
                 { id: "sell", label: "Sell YKP", icon: "💰" },
@@ -1826,7 +1853,7 @@ export default function TradePage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 font-semibold whitespace-nowrap transition-all duration-300 ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-3 sm:py-4 font-semibold whitespace-nowrap transition-all duration-300 text-sm sm:text-base ${
                     activeTab === tab.id
                       ? "bg-yellow-500 text-white border-b-2 border-yellow-600"
                       : "text-gray-600 hover:text-yellow-600 hover:bg-yellow-50"
@@ -1840,15 +1867,15 @@ export default function TradePage() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             {!isConnected ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-6">🔗</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Connect Your Wallet</h3>
-                <p className="text-gray-600 mb-6">Connect your MetaMask or Web3 wallet to start trading on YAKA PIE</p>
+              <div className="text-center py-6 sm:py-12 px-4">
+                <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">🔗</div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Connect Your Wallet</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto">Connect your MetaMask or Web3 wallet to start trading on YAKA PIE</p>
                 <button
                   onClick={connectWallet}
-                  className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-base sm:text-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto max-w-xs mx-auto block"
                 >
                   Connect Wallet
                 </button>
@@ -1875,7 +1902,7 @@ export default function TradePage() {
                           value={buyLarryAmount}
                           onChange={(e) => setBuyLarryAmount(e.target.value)}
                           placeholder="Enter LARRY amount"
-                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                         />
                         <button
                           onClick={setMaxLarry}
@@ -1897,7 +1924,7 @@ export default function TradePage() {
                           value={buyYkpAmount}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900 mobile-responsive-input"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">YKP</div>
                       </div>
@@ -2039,7 +2066,7 @@ export default function TradePage() {
                           value={sellYkpAmount}
                           onChange={(e) => setSellYkpAmount(e.target.value)}
                           placeholder="Enter YKP amount"
-                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white"
+                          className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-lg text-gray-900 bg-white mobile-responsive-input"
                         />
                         <button
                           onClick={setMaxYkp}
@@ -2061,7 +2088,7 @@ export default function TradePage() {
                           value={sellLarryAmount}
                           readOnly
                           placeholder="0.0000"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-lg text-gray-900 mobile-responsive-input"
                         />
                         <div className="absolute right-3 top-3 text-gray-500 font-semibold">LARRY</div>
                       </div>
@@ -2420,7 +2447,7 @@ export default function TradePage() {
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Remove Collateral</h3>
                         <div className="space-y-4">
@@ -2480,7 +2507,7 @@ export default function TradePage() {
 
                     <div className="border-t border-gray-200 pt-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Extend Loan</h3>
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Additional Days
@@ -2564,6 +2591,7 @@ export default function TradePage() {
           <p className="text-gray-600 text-sm">Built on SEI Network • Smart Contract Protected • Never Goes Down</p>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
