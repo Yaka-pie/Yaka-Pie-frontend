@@ -1471,6 +1471,7 @@ export default function TradePage() {
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
       if (txHash) {
         setTxHash(txHash);
+        alert(`Close Position transaction submitted! Transaction hash: ${txHash}`);
         setTimeout(() => {
           fetchBalances(account);
           fetchContractState();
@@ -1480,6 +1481,30 @@ export default function TradePage() {
     } catch (error: unknown) {
       const err = error as { message?: string };
       alert(err.message || "Close position failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const flashClosePosition = async () => {
+    if (!isConnected) return;
+    setIsLoading(true);
+    setTxHash("");
+    try {
+      const data = encodeFunctionCall('flashClosePosition', []);
+      const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
+      if (txHash) {
+        setTxHash(txHash);
+        alert(`Flash Close Position transaction submitted! Transaction hash: ${txHash}`);
+        setTimeout(() => {
+          fetchBalances(account);
+          fetchContractState();
+          fetchUserLoan(account);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      alert(err.message || "Flash close position failed");
     } finally {
       setIsLoading(false);
     }
@@ -2455,14 +2480,49 @@ export default function TradePage() {
                     </div>
 
                     <div className="border-t border-gray-200 pt-6">
-                      <div className="flex gap-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Position Management</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <button
                           onClick={closePosition}
                           disabled={isLoading}
-                          className="flex-1 bg-gradient-to-r from-red-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-gradient-to-r from-red-400 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Close Position
+                          {isLoading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                              <span className="text-sm sm:text-base">Processing...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1 sm:gap-2">
+                              <span>❌</span>
+                              <span className="text-sm sm:text-base">Close Position</span>
+                            </div>
+                          )}
                         </button>
+                        <button
+                          onClick={flashClosePosition}
+                          disabled={isLoading}
+                          className="bg-gradient-to-r from-orange-400 to-red-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold text-sm sm:text-base hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                              <span className="text-sm sm:text-base">Processing...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1 sm:gap-2">
+                              <span>⚡</span>
+                              <span className="text-sm sm:text-base">Flash Close</span>
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs sm:text-sm">
+                        <div className="font-semibold text-blue-800 mb-1">💡 Position Closing Options</div>
+                        <div className="text-blue-700 space-y-1">
+                          <div><strong>Close Position:</strong> Standard position closure with normal settlement</div>
+                          <div><strong>Flash Close:</strong> Instant position closure using flash loan functionality</div>
+                        </div>
                       </div>
                     </div>
                   </div>
