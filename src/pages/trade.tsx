@@ -281,8 +281,12 @@ export default function TradePage() {
       }) as string;
       
       const larryBalanceWei = BigInt(larryResult);
-      const larryBalanceFormatted = (Number(larryBalanceWei) / Math.pow(10, 18)).toFixed(4);
-      setLarryBalance(larryBalanceFormatted);
+      // Convert wei to ether with full precision
+      const weiString = larryBalanceWei.toString();
+      const etherStr = weiString.length > 18 
+        ? weiString.slice(0, -18) + '.' + weiString.slice(-18).replace(/0+$/, '')
+        : '0.' + weiString.padStart(18, '0').replace(/0+$/, '');
+      setLarryBalance(etherStr.endsWith('.') ? etherStr.slice(0, -1) : etherStr || '0');
       
       // Get YKP balance  
       const ykpBalanceData = encodeContractCall(getSelectorForSignature('balanceOf(address)'), [padAddress(userAccount)]); // balanceOf
