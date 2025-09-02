@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Geist, Inter } from "next/font/google";
+import PriceChart from "../components/PriceChart";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -127,6 +128,11 @@ export default function Home() {
                   <div className="text-sm font-semibold text-gray-900">SEI Network</div>
                   <div className="text-xs text-gray-600">Fast & secure</div>
                 </div>
+              </div>
+
+              {/* Price Chart */}
+              <div className="mb-12">
+                <PriceChart />
               </div>
 
               {/* CTA Buttons */}
