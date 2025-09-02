@@ -6,9 +6,23 @@ import useContract from '../hooks/useContract';
 
 const YKP_TOKEN_ADDRESS = "0x008c8c362cd46a9e41957cc11ee812647233dff1";
 
+interface PriceDataPoint {
+  date: string;
+  seiPrice: string;
+  larryPriceInSei: string;
+  ykpPriceInLarry: string;
+  ykpPriceInSei: string;
+  floor: number;
+}
+
+interface TooltipPayload {
+  dataKey: string;
+  value: string;
+}
+
 const PriceChart = () => {
-  const { lastPrice, totalSupply, totalBorrowed, backing, buyFee, sellFee, larryPrice, larrySupply, isLoading, error, refreshData } = useContract();
-  const [priceHistory, setPriceHistory] = useState<any[]>([]);
+  const { lastPrice, totalSupply, totalBorrowed, backing, buyFee, sellFee, larryPrice, larrySupply, isLoading, refreshData } = useContract();
+  const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([]);
 
   const generatePriceData = (currentYkpPrice: number, currentLarryPrice: number) => {
     const data = [];
@@ -86,15 +100,15 @@ const PriceChart = () => {
 
   const priceData = priceHistory;
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: string }) => {
     if (active && payload && payload.length) {
-      const seiPrice = payload.find((p: any) => p.dataKey === 'seiPrice')?.value;
-      const larryPrice = payload.find((p: any) => p.dataKey === 'larryPriceInSei')?.value;
-      const ykpPrice = payload.find((p: any) => p.dataKey === 'ykpPriceInSei')?.value;
+      const seiPrice = payload.find((p: TooltipPayload) => p.dataKey === 'seiPrice')?.value || '1';
+      const larryPrice = payload.find((p: TooltipPayload) => p.dataKey === 'larryPriceInSei')?.value || '0';
+      const ykpPrice = payload.find((p: TooltipPayload) => p.dataKey === 'ykpPriceInSei')?.value || '0';
       
       return (
         <div className="bg-white p-4 rounded-lg shadow-lg border border-yellow-200">
-          <p className="font-semibold text-gray-900">{`Date: ${label}`}</p>
+          <p className="font-semibold text-gray-900">{`Date: ${label || ''}`}</p>
           <hr className="my-2" />
           <p className="text-gray-600">
             {`SEI: ${parseFloat(seiPrice).toFixed(6)} (Baseline)`}

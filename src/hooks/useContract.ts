@@ -5,7 +5,6 @@ import contractAbi from '../pages/abi.json';
 // Actual contract addresses
 const YKP_TOKEN_ADDRESS = "0x008c8c362cd46a9e41957cc11ee812647233dff1";
 const LARRY_TOKEN_ADDRESS = "0x888d81e3ea5E8362B5f69188CBCF34Fa8da4b888";
-const CONTRACT_ADDRESS = YKP_TOKEN_ADDRESS; // YKP contract contains the price logic
 const SEI_RPC_URL = "https://evm-rpc.sei-apis.com"; // SEI Network RPC
 
 interface ContractData {
@@ -41,30 +40,6 @@ export const useContract = () => {
   const [larryContract, setLarryContract] = useState<ethers.Contract | null>(null);
   const [lastKnownPrice, setLastKnownPrice] = useState<number>(1.0);
 
-  useEffect(() => {
-    const initContracts = async () => {
-      try {
-        // Use JSON RPC provider for SEI Network
-        const provider = new ethers.JsonRpcProvider(SEI_RPC_URL);
-        
-        // Create contract instances for both tokens
-        const ykpInstance = new ethers.Contract(YKP_TOKEN_ADDRESS, contractAbi, provider);
-        const larryInstance = new ethers.Contract(LARRY_TOKEN_ADDRESS, contractAbi, provider);
-        
-        setYkpContract(ykpInstance);
-        setLarryContract(larryInstance);
-        
-        // Fetch initial data from both contracts
-        await fetchContractData(ykpInstance, larryInstance);
-      } catch (error) {
-        console.error('Error initializing contracts:', error);
-        setData(prev => ({ ...prev, error: 'Failed to connect to contracts', isLoading: false }));
-      }
-    };
-
-    initContracts();
-  }, []);
-
   const fetchContractData = async (ykpInstance: ethers.Contract, larryInstance: ethers.Contract) => {
     try {
       setData(prev => ({ ...prev, isLoading: true, error: null }));
@@ -76,8 +51,7 @@ export const useContract = () => {
         ykpTotalBorrowed,
         ykpTotalCollateral,
         ykpBacking,
-        ykpBuyFee,
-        ykpSellFee,
+        ,, // Skip unused fee values
         larryLastPrice,
         larryTotalSupply
       ] = await Promise.all([
@@ -128,6 +102,30 @@ export const useContract = () => {
       });
     }
   };
+
+  useEffect(() => {
+    const initContracts = async () => {
+      try {
+        // Use JSON RPC provider for SEI Network
+        const provider = new ethers.JsonRpcProvider(SEI_RPC_URL);
+        
+        // Create contract instances for both tokens
+        const ykpInstance = new ethers.Contract(YKP_TOKEN_ADDRESS, contractAbi, provider);
+        const larryInstance = new ethers.Contract(LARRY_TOKEN_ADDRESS, contractAbi, provider);
+        
+        setYkpContract(ykpInstance);
+        setLarryContract(larryInstance);
+        
+        // Fetch initial data from both contracts
+        await fetchContractData(ykpInstance, larryInstance);
+      } catch (error) {
+        console.error('Error initializing contracts:', error);
+        setData(prev => ({ ...prev, error: 'Failed to connect to contracts', isLoading: false }));
+      }
+    };
+
+    initContracts();
+  }, []);
 
   const refreshData = async () => {
     if (ykpContract && larryContract) {

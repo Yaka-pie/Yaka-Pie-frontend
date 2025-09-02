@@ -64,33 +64,6 @@ export default function Home() {
       <div className="relative z-10 pt-16 pb-32">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">
-            {/* Main Logo */}
-            <div className="relative mb-12">
-              <div className="inline-block relative">
-                {/* Background glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl blur-2xl opacity-30 scale-110"></div>
-
-                {/* Main logo container */}
-                <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-yellow-200">
-                  <div className="flex items-center justify-center space-x-4 mb-4">
-                    {/* Main Pie Logo */}
-                    <div className="text-center">
-                      <div className="w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse mx-auto mb-4">
-                        <span className="text-6xl sm:text-7xl">🥧</span>
-                      </div>
-                      <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-yellow-500 via-orange-600 to-red-600 bg-clip-text text-transparent leading-none">
-                        YAKA PIE
-                      </h1>
-                    </div>
-                  </div>
-
-                  {/* YKP Badge */}
-                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full font-bold text-xl shadow-lg inline-block">
-                    YKP Token
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Value Proposition */}
             <div className="max-w-4xl mx-auto mb-12">
