@@ -586,6 +586,22 @@ export default function TradePage() {
     }
   };
 
+  // Utility function to safely convert decimal string to wei BigInt
+  const toWei = (amount: string | number, decimals: number = 18): bigint => {
+    const amountStr = typeof amount === 'number' ? amount.toString() : amount;
+    if (!amountStr || parseFloat(amountStr) === 0) return BigInt(0);
+    
+    // Split into integer and decimal parts
+    const [integerPart = '0', decimalPart = ''] = amountStr.split('.');
+    
+    // Pad or trim decimal part to match required decimals
+    const paddedDecimal = decimalPart.padEnd(decimals, '0').slice(0, decimals);
+    
+    // Combine and convert to BigInt
+    const weiString = integerPart + paddedDecimal;
+    return BigInt(weiString);
+  };
+
   // Function to get buy tokens directly from contract
   const getBuyTokensFromContract = async (larryAmount: string) => {
     if (!window.ethereum || !larryAmount || parseFloat(larryAmount) <= 0) return "0";
@@ -598,7 +614,7 @@ export default function TradePage() {
     }
     
     try {
-      const larryAmountWei = BigInt(Math.floor(parseFloat(larryAmount) * Math.pow(10, 18)));
+      const larryAmountWei = toWei(larryAmount, 18);
       const larryAmountHex = '0x' + larryAmountWei.toString(16);
       
       // Call getBuyTokens(amount) via ABI-derived selector
@@ -1142,7 +1158,7 @@ export default function TradePage() {
 
       // Use a safer method to handle large numbers without scientific notation
       const decimals = 18;
-      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountWei = toWei(larryAmountFloat, decimals);
       const larryAmountHex = '0x' + larryAmountWei.toString(16);
       
       // Step 1: Approve LARRY tokens for the YKP contract
@@ -1215,7 +1231,7 @@ export default function TradePage() {
       // Use a safer method to handle large numbers without scientific notation
       const decimals = 18;
       // Use floor to avoid attempting to sell more than balance due to float rounding
-      const ykpAmountWei = BigInt(Math.floor(ykpAmountFloat * Math.pow(10, decimals)));
+      const ykpAmountWei = toWei(ykpAmountFloat, decimals);
       const ykpAmountHex = '0x' + ykpAmountWei.toString(16);
       
       // Call sell function on YKP contract
@@ -1273,12 +1289,12 @@ export default function TradePage() {
       
       // Use a safer method to handle large numbers without scientific notation
       const decimals = 18;
-      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountWei = toWei(larryAmountFloat, decimals);
       const larryAmountHex = '0x' + larryAmountWei.toString(16);
       const numberOfDaysHex = '0x' + parseInt(leverageDays).toString(16);
       
       // Step 1: Approve LARRY tokens for the YKP contract (including fees)
-      const totalRequiredWei = BigInt(Math.floor(totalRequired * Math.pow(10, decimals)));
+      const totalRequiredWei = toWei(totalRequired, decimals);
       const totalRequiredHex = '0x' + totalRequiredWei.toString(16);
       
       const approveData = encodeFunctionCall('approve', [YKP_TOKEN_ADDRESS, totalRequiredHex]);
@@ -1347,12 +1363,12 @@ export default function TradePage() {
       }
 
       const decimals = 18;
-      const larryAmountWei = BigInt(Math.floor(larryAmountFloat * Math.pow(10, decimals)));
+      const larryAmountWei = toWei(larryAmountFloat, decimals);
       const larryAmountHex = '0x' + larryAmountWei.toString(16);
       const numberOfDaysHex = '0x' + parseInt(borrowDays).toString(16);
       
       // Calculate required YKP collateral in wei
-      const collateralWei = BigInt(Math.floor(collateralFloat * Math.pow(10, decimals)));
+      const collateralWei = toWei(collateralFloat, decimals);
       const collateralHex = '0x' + collateralWei.toString(16);
       
       // Call borrow function on YKP contract (no approval needed for native YKP collateral)
@@ -1394,7 +1410,7 @@ export default function TradePage() {
       const amountFloat = parseFloat(borrowMoreAmount);
       if (isNaN(amountFloat) || amountFloat <= 0) throw new Error("Invalid LARRY amount");
       const decimals = 18;
-      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountWei = toWei(amountFloat, decimals);
       const amountHex = '0x' + amountWei.toString(16);
       const data = encodeFunctionCall('borrowMore', [amountHex]);
       const txHash = await executeTransaction(YKP_TOKEN_ADDRESS, data);
@@ -1453,7 +1469,7 @@ export default function TradePage() {
       }
       
       const decimals = 18;
-      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountWei = toWei(amountFloat, decimals);
       const amountHex = '0x' + amountWei.toString(16);
       const data = encodeFunctionCall('removeCollateral', [amountHex]);
       
@@ -1504,7 +1520,7 @@ export default function TradePage() {
       
       // Use standard conversion for partial repayments
       const decimals = 18;
-      const amountWei = BigInt(Math.floor(amountFloat * Math.pow(10, decimals)));
+      const amountWei = toWei(amountFloat, decimals);
       const amountHex = '0x' + amountWei.toString(16);
       
       console.log("Partial repayment:", amountFloat, "-> Wei:", amountWei.toString());
@@ -1744,12 +1760,15 @@ export default function TradePage() {
 
   // Max button functions
   const setMaxLarry = () => {
-    setBuyLarryAmount(larryBalance);
+    // Limit to 2 decimal places to avoid precision issues
+    const balance = parseFloat(larryBalance || '0');
+    setBuyLarryAmount(balance.toFixed(2));
   };
 
   const setMaxYkp = () => {
-    // Use exact YKP balance
-    setSellYkpAmount(ykpBalance);
+    // Limit to 2 decimal places to avoid precision issues
+    const balance = parseFloat(ykpBalance || '0');
+    setSellYkpAmount(balance.toFixed(2));
   };
 
   return (
@@ -2474,11 +2493,11 @@ export default function TradePage() {
                               const ykpValueInLarry = (ykpBalanceFloat * parseFloat(contractBacking)) / parseFloat(totalSupply);
                               // Max borrowable is 99% of collateral value (contract allows this)
                               const maxBorrowable = ykpValueInLarry * 0.99; // 99% as per contract requirement
-                              setBorrowLarryAmount(maxBorrowable.toFixed(4));
+                              setBorrowLarryAmount(maxBorrowable.toFixed(2));
                             } else {
                               // Fallback: if no contract data, assume 1:1 ratio and use 99%
                               const maxBorrowable = ykpBalanceFloat * 0.99; 
-                              setBorrowLarryAmount(maxBorrowable.toFixed(4));
+                              setBorrowLarryAmount(maxBorrowable.toFixed(2));
                             }
                           }}
                           className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
@@ -2641,7 +2660,7 @@ export default function TradePage() {
                               console.log('maxTotalBorrowable:', maxTotalBorrowable);
                               console.log('maxAdditionalBorrowable:', maxAdditionalBorrowable);
                               
-                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(4));
+                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(2));
                             } else {
                               // Fallback: assume 1:1 ratio
                               const totalPossibleCollateral = currentCollateral + walletBalance;
@@ -2651,7 +2670,7 @@ export default function TradePage() {
                               console.log('Fallback - totalPossibleCollateral:', totalPossibleCollateral);
                               console.log('Fallback - maxAdditionalBorrowable:', maxAdditionalBorrowable);
                               
-                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(4));
+                              setBorrowMoreAmount(maxAdditionalBorrowable.toFixed(2));
                             }
                             console.log('=== END MAX CALCULATION ===');
                           }}
@@ -2744,11 +2763,11 @@ export default function TradePage() {
                                     const requiredCollateralInLarry = borrowed / 0.99; // Need 99% collateralization
                                     const requiredCollateralInYkp = (requiredCollateralInLarry * parseFloat(totalSupply)) / parseFloat(contractBacking);
                                     const safeMaxRemovable = Math.max(0, currentCollateral - requiredCollateralInYkp - 0.001); // Small buffer
-                                    setRemoveCollateralAmount(safeMaxRemovable.toFixed(4));
+                                    setRemoveCollateralAmount(safeMaxRemovable.toFixed(2));
                                   } else {
                                     // Fallback: leave small buffer
                                     const safeAmount = Math.max(0, currentCollateral * 0.1); // Only allow 10% as safe fallback
-                                    setRemoveCollateralAmount(safeAmount.toFixed(4));
+                                    setRemoveCollateralAmount(safeAmount.toFixed(2));
                                   }
                                 }}
                                 className="absolute right-14 sm:right-16 top-3 bg-green-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-green-600 transition-colors"
@@ -2835,8 +2854,9 @@ export default function TradePage() {
                                   if (balanceFloat >= maxRepayableFloat) {
                                     setRepayAmount(maxRepayable);
                                   } else {
-                                    // User doesn't have enough, use their balance
-                                    setRepayAmount(larryBalance);
+                                    // User doesn't have enough, use their balance (limit to 2 decimals)
+                                    const balance = parseFloat(larryBalance || '0');
+                                    setRepayAmount(balance.toFixed(2));
                                   }
                                 }}
                                 className="absolute right-14 sm:right-16 top-3 bg-blue-500 text-white px-1.5 sm:px-2 py-1 rounded text-xs sm:text-sm font-medium hover:bg-blue-600 transition-colors"
