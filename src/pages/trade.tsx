@@ -1760,15 +1760,19 @@ export default function TradePage() {
 
   // Max button functions
   const setMaxLarry = () => {
-    // Limit to 2 decimal places to avoid precision issues
+    // Use the same precision as displayed in the balance (2 decimal places, rounded down)
     const balance = parseFloat(larryBalance || '0');
-    setBuyLarryAmount(balance.toFixed(2));
+    // Round down to 2 decimals to ensure we never try to buy more than what's shown
+    const roundedBalance = Math.floor(balance * 100) / 100;
+    setBuyLarryAmount(roundedBalance.toFixed(2));
   };
 
   const setMaxYkp = () => {
-    // Limit to 2 decimal places to avoid precision issues
+    // Use the same precision as displayed in the balance (2 decimal places, rounded down)
     const balance = parseFloat(ykpBalance || '0');
-    setSellYkpAmount(balance.toFixed(2));
+    // Round down to 2 decimals to ensure we never try to sell more than what's shown
+    const roundedBalance = Math.floor(balance * 100) / 100;
+    setSellYkpAmount(roundedBalance.toFixed(2));
   };
 
   return (
