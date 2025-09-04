@@ -2640,7 +2640,9 @@ export default function TradePage() {
                             
                             const currentCollateral = parseFloat(userLoan.collateral || '0');
                             const currentBorrowed = parseFloat(userLoan.borrowed || '0'); 
-                            const walletBalance = parseFloat(ykpBalance || '0');
+                            // Use rounded down wallet balance to match display precision
+                            const walletBalanceRaw = parseFloat(ykpBalance || '0');
+                            const walletBalance = Math.floor(walletBalanceRaw * 100) / 100;
                             
                             console.log('currentCollateral:', currentCollateral);
                             console.log('currentBorrowed:', currentBorrowed);
