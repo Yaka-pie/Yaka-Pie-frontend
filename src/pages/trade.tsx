@@ -2091,6 +2091,7 @@ export default function TradePage() {
                 console.log("🔍 Arbitrage Rate Comparison:");
                 console.log("  YAKA PIE LARRY→YKP rate:", yakaLarryToYkp);
                 console.log("  OpenOcean LARRY→YKP rate:", openOceanLarryToYkp);
+                console.log("  Real arbitrage data:", realArbitrageData);
                 
                 const bestLarryToYkpPlatform = yakaLarryToYkp > openOceanLarryToYkp ? 'YAKA PIE' : 'OpenOcean';
                 const bestLarryToYkpRate = Math.max(yakaLarryToYkp, openOceanLarryToYkp);
@@ -2124,8 +2125,13 @@ export default function TradePage() {
                 const combo2_larry = combo2_ykp * yakaYkpToLarryRate; // Sell YKP on YAKA PIE
                 const combo2_profit = ((combo2_larry - 1) / 1) * 100;
                 
-                // Find the best profitable cross-platform arbitrage
-                const bestCombo = combo1_profit > combo2_profit ? 
+                console.log("📊 Cross-platform combinations:");
+                console.log("  Combo1 (YAKA→OpenOcean): YKP=" + combo1_ykp + ", LARRY=" + combo1_larry + ", Profit=" + combo1_profit.toFixed(2) + "%");
+                console.log("  Combo2 (OpenOcean→YAKA): YKP=" + combo2_ykp + ", LARRY=" + combo2_larry + ", Profit=" + combo2_profit.toFixed(2) + "%");
+                
+                // Always use cross-platform arbitrage (never same platform)
+                // Pick the most profitable cross-platform combination
+                const bestCombo = combo1_profit >= combo2_profit ? 
                   { profit: combo1_profit, ykp: combo1_ykp, larry: combo1_larry, buyPlatform: 'YAKA PIE', sellPlatform: 'OpenOcean' } :
                   { profit: combo2_profit, ykp: combo2_ykp, larry: combo2_larry, buyPlatform: 'OpenOcean', sellPlatform: 'YAKA PIE' };
                 
