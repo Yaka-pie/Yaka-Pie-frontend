@@ -2186,7 +2186,7 @@ export default function TradePage() {
                     <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm">
                       <div className="font-semibold text-gray-700 mb-1">📊 No Arbitrage Opportunities</div>
                       <div className="text-gray-600">
-                        No profitable cross-platform arbitrage opportunities found. Current price differences between YAKA PIE and OpenOcean don't create profitable cycles after accounting for fees and slippage.
+                        No profitable cross-platform arbitrage opportunities found. Current price differences between YAKA PIE and OpenOcean don&apos;t create profitable cycles after accounting for fees and slippage.
                         <div className="mt-2 text-xs">
                           <div>YAKA PIE → OpenOcean: {combo1_profit.toFixed(2)}% profit</div>
                           <div>OpenOcean → YAKA PIE: {combo2_profit.toFixed(2)}% profit</div>
