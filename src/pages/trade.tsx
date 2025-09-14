@@ -166,6 +166,13 @@ export default function TradePage() {
 
   // Flash Close states removed
   
+  // Real arbitrage data state
+  const [realArbitrageData, setRealArbitrageData] = useState<{
+    realYkpFromOneLarry: number;
+    realLarryFromYkp: number;
+    timestamp: number;
+  } | null>(null);
+  
   // Contract state for leverage calculations
   const [contractBacking, setContractBacking] = useState("0");
   const [totalSupply, setTotalSupply] = useState("0");
@@ -216,19 +223,32 @@ export default function TradePage() {
 
   // Calculate sell amounts using real contract data
   useEffect(() => {
-    if (sellYkpAmount && parseFloat(sellYkpAmount) > 0 && contractBacking && totalSupply && sellFee) {
-      // Use the actual sell fee from contract and calculateLarryFromTokens function
-      const larryFromContract = calculateLarryFromTokens(sellYkpAmount);
-      const feeMultiplier = parseFloat(sellFee) / 1000; // Convert from basis points
-      const larryAfterFee = parseFloat(larryFromContract) * feeMultiplier;
-      setSellLarryAmount(larryAfterFee.toFixed(4));
-    } else if (sellYkpAmount && parseFloat(sellYkpAmount) > 0) {
-      // Fallback to static calculation if contract data not loaded
-      const calculated = (parseFloat(sellYkpAmount) * 0.975).toFixed(4);
-      setSellLarryAmount(calculated);
-    } else {
-      setSellLarryAmount("");
-    }
+    const calculateSellAmount = async () => {
+      if (sellYkpAmount && parseFloat(sellYkpAmount) > 0) {
+        // First try to use the contract simulation for accurate sell amount
+        const realLarryFromSell = await getSellTokensFromContract(sellYkpAmount);
+        if (parseFloat(realLarryFromSell) > 0) {
+          setSellLarryAmount(realLarryFromSell);
+          return;
+        }
+        
+        // Fallback to contract data calculation if simulation fails
+        if (contractBacking && totalSupply && sellFee) {
+          const larryFromContract = calculateLarryFromTokens(sellYkpAmount);
+          const feeMultiplier = parseFloat(sellFee) / 1000; // Convert from basis points
+          const larryAfterFee = parseFloat(larryFromContract) * feeMultiplier;
+          setSellLarryAmount(larryAfterFee.toFixed(4));
+        } else {
+          // Final fallback to static calculation
+          const calculated = (parseFloat(sellYkpAmount) * 0.975).toFixed(4);
+          setSellLarryAmount(calculated);
+        }
+      } else {
+        setSellLarryAmount("");
+      }
+    };
+
+    calculateSellAmount();
   }, [sellYkpAmount, contractBacking, totalSupply, sellFee]);
 
   // Calculate leverage fee using real contract data
@@ -274,6 +294,35 @@ export default function TradePage() {
       setBorrowCollateral("");
     }
   }, [borrowLarryAmount, contractBacking, totalSupply]);
+
+  // Calculate real arbitrage data using getBuyTokens and getSellTokens
+  useEffect(() => {
+    const calculateRealArbitrageData = async () => {
+      if (contractBacking && totalSupply) {
+        try {
+          // Get real YKP amount from 1 LARRY
+          const realYkpFromOneLarry = await getBuyTokensFromContract("1");
+          const ykpAmount = parseFloat(realYkpFromOneLarry);
+          
+          if (ykpAmount > 0) {
+            // Get real LARRY amount from selling the YKP we got
+            const realLarryFromYkp = await getSellTokensFromContract(realYkpFromOneLarry);
+            const larryAmount = parseFloat(realLarryFromYkp);
+            
+            setRealArbitrageData({
+              realYkpFromOneLarry: ykpAmount,
+              realLarryFromYkp: larryAmount > 0 ? larryAmount / ykpAmount : 0, // YKP to LARRY rate
+              timestamp: Date.now()
+            });
+          }
+        } catch (error) {
+          console.error("Failed to calculate real arbitrage data:", error);
+        }
+      }
+    };
+
+    calculateRealArbitrageData();
+  }, [contractBacking, totalSupply]); // Recalculate when contract data changes
 
   // Set default extend days to maximum extendable days
   useEffect(() => {
@@ -656,6 +705,74 @@ export default function TradePage() {
     } catch (error) {
       console.error("❌ Failed to call getBuyTokens:", error);
       return "0";
+    }
+  };
+
+  // Function to get LARRY amount from selling YKP tokens via contract simulation
+  const getSellTokensFromContract = async (ykpAmount: string) => {
+    if (!window.ethereum || !ykpAmount || parseFloat(ykpAmount) <= 0) return "0";
+    
+    // Check network first
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      console.warn("Cannot call sell simulation - wrong network");
+      return "0";
+    }
+    
+    try {
+      const ykpAmountWei = toWei(ykpAmount, 18);
+      const ykpAmountHex = '0x' + ykpAmountWei.toString(16);
+      
+      // Simulate sell function call to see how much LARRY would be returned
+      const selector = getSelectorForSignature('sell(uint256)');
+      const sellData = selector + padNumber(ykpAmountHex);
+      
+      console.log("🔍 Simulating sell transaction:");
+      console.log("  📍 Contract:", YKP_TOKEN_ADDRESS);
+      console.log("  💰 YKP Amount:", ykpAmount);
+      console.log("  🔢 Wei:", ykpAmountWei.toString());
+      console.log("  🔧 Selector:", selector);
+      console.log("  📦 Call Data:", sellData);
+      
+      // Note: This will simulate the transaction to see what LARRY amount would be returned
+      // The sell function should return or emit the LARRY amount that would be transferred
+      const result = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: YKP_TOKEN_ADDRESS,
+          data: sellData,
+          from: account // Need to specify from address for proper simulation
+        }, 'latest']
+      }) as string;
+      
+      console.log("📥 Sell simulation raw result:", result);
+      
+      if (!result || result === '0x' || result === '0x0') {
+        console.warn("⚠️ Sell simulation returned empty/zero - using fallback calculation");
+        // Fallback to current calculation method
+        const larryFromTokens = calculateLarryFromTokens(ykpAmount);
+        const sellFeeNum = parseFloat(sellFee) / 1000;
+        const larryAfterFee = parseFloat(larryFromTokens) * sellFeeNum;
+        return larryAfterFee.toFixed(6);
+      }
+      
+      const larryWei = BigInt(result);
+      // Convert wei to ether with full precision
+      const larryWeiString = larryWei.toString();
+      const larryEtherStr = larryWeiString.length > 18 
+        ? larryWeiString.slice(0, -18) + '.' + larryWeiString.slice(-18).replace(/0+$/, '')
+        : '0.' + larryWeiString.padStart(18, '0').replace(/0+$/, '');
+      const larryFormatted = larryEtherStr.endsWith('.') ? larryEtherStr.slice(0, -1) : larryEtherStr || '0';
+      console.log("✅ LARRY from sell simulation:", larryFormatted, "LARRY");
+      
+      return larryFormatted;
+    } catch (error) {
+      console.error("❌ Failed to simulate sell transaction:", error);
+      // Fallback to current calculation method
+      const larryFromTokens = calculateLarryFromTokens(ykpAmount);
+      const sellFeeNum = parseFloat(sellFee) / 1000;
+      const larryAfterFee = parseFloat(larryFromTokens) * sellFeeNum;
+      return larryAfterFee.toFixed(6);
     }
   };
 
@@ -1959,18 +2076,64 @@ export default function TradePage() {
                 const openOceanLarryToYkpRate = openOceanPrices.larryToYkpRate;
                 const openOceanYkpToLarryRate = openOceanPrices.ykpToLarryRate;
 
-                // Test REAL arbitrage cycles
+                // Test REAL arbitrage cycles using real contract data
+                // Use real arbitrage data from getBuyTokens contract call
+                const realYkpFromOneLarry = realArbitrageData 
+                  ? realArbitrageData.realYkpFromOneLarry 
+                  : parseFloat(totalSupply) / parseFloat(contractBacking); // fallback to theoretical
+                
+                // Use real contract data when available  
+                const yakaLarryToYkp = realYkpFromOneLarry; // Real contract rate from getBuyTokens
+                const openOceanLarryToYkp = openOceanLarryToYkpRate; // OpenOcean rate
+                
                 // Cycle 1: Start with 1 LARRY → YKP (best platform) → LARRY (best platform)
-                const cycle1_ykp = Math.max(ourLarryToYkpRate, openOceanLarryToYkpRate); // Best LARRY→YKP rate
-                const cycle1_larry = cycle1_ykp * Math.max(ourYkpToLarryRate, openOceanYkpToLarryRate); // Best YKP→LARRY rate
-                const cycle1_profit = ((cycle1_larry - 1) / 1) * 100; // Profit from 1 LARRY
+                // Step 1: Determine best platform for LARRY → YKP
+                console.log("🔍 Arbitrage Rate Comparison:");
+                console.log("  YAKA PIE LARRY→YKP rate:", yakaLarryToYkp);
+                console.log("  OpenOcean LARRY→YKP rate:", openOceanLarryToYkp);
+                
+                const bestLarryToYkpPlatform = yakaLarryToYkp > openOceanLarryToYkp ? 'YAKA PIE' : 'OpenOcean';
+                const bestLarryToYkpRate = Math.max(yakaLarryToYkp, openOceanLarryToYkp);
+                const step1_ykpAmount = bestLarryToYkpRate; // YKP received from 1 LARRY
+                
+                // Step 2: Determine best platform for YKP → LARRY using the YKP amount from step 1
+                // Use real sell data when available
+                const yakaYkpToLarryRate = realArbitrageData 
+                  ? realArbitrageData.realLarryFromYkp 
+                  : parseFloat(contractBacking) / parseFloat(totalSupply); // fallback to theoretical
+                
+                console.log("  YAKA PIE YKP→LARRY rate:", yakaYkpToLarryRate);
+                console.log("  OpenOcean YKP→LARRY rate:", openOceanYkpToLarryRate);
+                
+                const bestYkpToLarryPlatform = yakaYkpToLarryRate > openOceanYkpToLarryRate ? 'YAKA PIE' : 'OpenOcean';
+                const bestYkpToLarryRate = Math.max(yakaYkpToLarryRate, openOceanYkpToLarryRate);
+                const step2_larryAmount = step1_ykpAmount * bestYkpToLarryRate; // Final LARRY amount
+                
+                console.log("🎯 Selected platforms:", { step1: bestLarryToYkpPlatform, step2: bestYkpToLarryPlatform });
+                
+                const cycle1_profit = ((step2_larryAmount - 1) / 1) * 100; // Profit from 1 LARRY
 
-                // Cycle 2: Start with 1 YKP → LARRY (best platform) → YKP (best platform)
-                const cycle2_larry = Math.max(ourYkpToLarryRate, openOceanYkpToLarryRate); // Best YKP→LARRY rate
-                const cycle2_ykp = cycle2_larry * Math.max(ourLarryToYkpRate, openOceanLarryToYkpRate); // Best LARRY→YKP rate
-                const cycle2_profit = ((cycle2_ykp - 1) / 1) * 100; // Profit from 1 YKP
-
-                const hasRealArbitrage = cycle1_profit > 1 || cycle2_profit > 1; // 1% threshold for real profit
+                // Check all possible cross-platform arbitrage combinations
+                // Combination 1: YAKA PIE → OpenOcean  
+                const combo1_ykp = yakaLarryToYkp; // Buy YKP on YAKA PIE
+                const combo1_larry = combo1_ykp * openOceanYkpToLarryRate; // Sell YKP on OpenOcean
+                const combo1_profit = ((combo1_larry - 1) / 1) * 100;
+                
+                // Combination 2: OpenOcean → YAKA PIE
+                const combo2_ykp = openOceanLarryToYkp; // Buy YKP on OpenOcean  
+                const combo2_larry = combo2_ykp * yakaYkpToLarryRate; // Sell YKP on YAKA PIE
+                const combo2_profit = ((combo2_larry - 1) / 1) * 100;
+                
+                // Find the best profitable cross-platform arbitrage
+                const bestCombo = combo1_profit > combo2_profit ? 
+                  { profit: combo1_profit, ykp: combo1_ykp, larry: combo1_larry, buyPlatform: 'YAKA PIE', sellPlatform: 'OpenOcean' } :
+                  { profit: combo2_profit, ykp: combo2_ykp, larry: combo2_larry, buyPlatform: 'OpenOcean', sellPlatform: 'YAKA PIE' };
+                
+                console.log("🔄 Cross-platform arbitrage analysis:");
+                console.log("  YAKA PIE → OpenOcean:", combo1_profit.toFixed(2) + "%");
+                console.log("  OpenOcean → YAKA PIE:", combo2_profit.toFixed(2) + "%");
+                
+                const hasRealArbitrage = bestCombo.profit > 1; // 1% threshold
 
                 if (hasRealArbitrage) {
                   return (
@@ -1988,20 +2151,20 @@ export default function TradePage() {
                           <div className="font-medium text-blue-800 bg-blue-50 px-3 py-2 rounded">
                             <div className="font-bold mb-1">Complete Arbitrage Cycle:</div>
                             <div>1. Start: 1 LARRY</div>
-                            <div>2. Convert: 1 LARRY → {cycle1_ykp.toFixed(6)} YKP ({ourLarryToYkpRate > openOceanLarryToYkpRate ? 'on YAKA PIE' : 'on OpenOcean'}) ✅</div>
-                            <div>3. Convert: {cycle1_ykp.toFixed(6)} YKP → {cycle1_larry.toFixed(6)} LARRY ({ourYkpToLarryRate > openOceanYkpToLarryRate ? 'on YAKA PIE' : 'on OpenOcean'}) ✅</div>
-                            <div className="font-bold text-green-700">4. End Result: {cycle1_larry.toFixed(6)} LARRY</div>
+                            <div>2. Convert: 1 LARRY → {bestCombo.ykp.toFixed(6)} YKP (on {bestCombo.buyPlatform}) ✅</div>
+                            <div>3. Convert: {bestCombo.ykp.toFixed(6)} YKP → {bestCombo.larry.toFixed(6)} LARRY (on {bestCombo.sellPlatform}) ✅</div>
+                            <div className="font-bold text-green-700">4. End Result: {bestCombo.larry.toFixed(6)} LARRY</div>
                           </div>
                           
                           <div className="bg-green-50 border border-green-200 rounded p-3">
                             <div className="font-bold text-green-700 text-lg">
-                              💰 LARRY Profit: {cycle1_profit.toFixed(2)}% per cycle
+                              💰 LARRY Profit: {bestCombo.profit.toFixed(2)}% per cycle
                             </div>
                             <div className="text-green-600 mt-1">
-                              For every 100 LARRY you start with → You end with {(100 * cycle1_larry).toFixed(2)} LARRY
+                              For every 100 LARRY you start with → You end with {(100 * bestCombo.larry).toFixed(2)} LARRY
                             </div>
                             <div className="text-green-600 font-medium">
-                              = {((100 * cycle1_larry) - 100).toFixed(2)} LARRY profit 🎯
+                              = {((100 * bestCombo.larry) - 100).toFixed(2)} LARRY profit 🎯
                             </div>
                           </div>
                         </div>
@@ -2017,7 +2180,11 @@ export default function TradePage() {
                     <div className="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm">
                       <div className="font-semibold text-gray-700 mb-1">📊 No Arbitrage Opportunities</div>
                       <div className="text-gray-600">
-                        Current price differences don&apos;t create profitable arbitrage cycles. Individual conversions may have better rates on different platforms.
+                        No profitable cross-platform arbitrage opportunities found. Current price differences between YAKA PIE and OpenOcean don't create profitable cycles after accounting for fees and slippage.
+                        <div className="mt-2 text-xs">
+                          <div>YAKA PIE → OpenOcean: {combo1_profit.toFixed(2)}% profit</div>
+                          <div>OpenOcean → YAKA PIE: {combo2_profit.toFixed(2)}% profit</div>
+                        </div>
                       </div>
                     </div>
                   );
